@@ -16,6 +16,7 @@ const ONGLETS = {
   PARTICIPANTS: 'Participants',
   FMFP: 'Suivi FMFP',
   DASHBOARD: 'Tableau de bord',
+  EXPORTS: 'Exports',
   IMPORT: 'Import HubSpot',
   JOURNAL: 'Journal'
 };
@@ -47,6 +48,8 @@ const COLONNES = {
     'N° Facture 100 %', 'N° Facture 70 %', 'N° Facture 30 %', 'CV formateurs envoyés', 'Rapports envoyés',
     'Fiches de présence envoyées', 'Prochaine relance', 'Relance HubSpot créée', 'Commentaire'],
   'Tableau de bord': ['Indicateur', 'Valeur', 'Détail'],
+  'Exports': ['N°', 'Date', 'Type', 'N° Proforma', 'ID Entité', 'Raison sociale', 'ID Session',
+    'Dossier session (PC)', 'Dossier cible (PC)', 'Nom du fichier', 'Lien Drive', 'Classé sur le PC', 'Exporté le'],
   'Import HubSpot': ['Record ID', 'Company name', 'Parent company ID', 'Street address', 'City', 'Phone number', 'Email'],
   'Journal': ['Horodatage', 'Action', 'Détail', 'Utilisateur']
 };
@@ -86,7 +89,8 @@ const PARAMS_DEFAUT = [
   ['SOCIETE_STAT', '70202 11 2022 0 11337', ''],
   ['SOCIETE_RCS', '2022B01295', ''],
   ['MENTION_FISCALE_SUP', '', 'Mention fiscale supplémentaire en pied de page (à valider avec le comptable)'],
-  ['TAUX_TVA', 0.2, 'Taux de TVA (20 % = 0.2). À CONFIRMER avec le comptable.'],
+  ['TVA_APPLICABLE', 'Oui', 'Oui / Non. Assujettissement à faire confirmer (récépissé 2025 = impôt synthétique, aucune pièce TVA trouvée).'],
+  ['TAUX_TVA', 0.2, 'Taux de TVA si applicable (20 % = 0.2). À CONFIRMER avec le comptable.'],
   ['DEVISE', 'Ar', ''],
   ['POURCENT_ACOMPTE', 70, 'Pourcentage par défaut de la facture d\'acompte'],
   ['CONDITIONS_PAIEMENT', 'Au comptant — 70 % avant la date de la formation / 30 % après la date de fin de la formation', ''],
@@ -98,7 +102,7 @@ const PARAMS_DEFAUT = [
   ['SIGNATURE_FILE_ID', '', 'ID Google Drive de l\'image tampon + signature (optionnel)'],
   ['DOSSIER_EXPORT_ID', '', 'Rempli par l\'initialisation : dossier Drive des PDF'],
   ['COMPTEUR_DEPART_DE_2026', 70, 'Dernier n° de facture déjà utilisé en 2026 (ancienne série). Prochaine = +1'],
-  ['COMPTEUR_DEPART_PF_2026', '', 'Dernier n° de proforma déjà utilisé en 2026 — À RENSEIGNER'],
+  ['COMPTEUR_DEPART_PF_2026', 72, 'Dernier n° de proforma utilisé en 2026 (2605-F-PF-00072 HELIOS). Prochaine = +1'],
   ['COULEUR_PRINCIPALE', '#1B2B5E', ''],
   ['COULEUR_ACCENT', '#C89B2A', '']
 ];

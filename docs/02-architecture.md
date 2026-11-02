@@ -21,6 +21,7 @@
 | Participants | Test de niveau, niveau validé, présence, évaluation, attestation (≥ 80 %) |
 | Suivi FMFP | Étapes du dossier, factures liées, pièces envoyées, relances |
 | Tableau de bord | Facturé, reste à encaisser, sessions, alertes, relances |
+| Exports | Un PDF par ligne : type, session, dossier cible sur le PC, lien Drive, case « Classé sur le PC » |
 | Import HubSpot | Import manuel si pas de clé API |
 | Journal | Trace de chaque action |
 
@@ -45,11 +46,15 @@
 Chaque changement d'étape date l'étape et programme une relance (paramètre `DELAI_RELANCE_FMFP_JOURS`). *HubSpot > Créer les relances FMFP dues* crée une tâche « e-mail » sur l'entreprise dans HubSpot ; l'e-mail est envoyé depuis HubSpot.
 
 ## TVA
-MDC est assujettie (confirmé par Tiavina). Taux paramétré à 20 % (`TAUX_TVA`) — **à confirmer avec le comptable**, ainsi que les mentions fiscales obligatoires (`MENTION_FISCALE_SUP`). Les factures 2026 existantes ne portent pas de TVA.
+Paramètres `TVA_APPLICABLE` (Oui/Non) et `TAUX_TVA` (20 % par défaut). Tiavina indique que MDC est assujettie ; **aucune pièce ne le confirme** dans D:\MDC (récépissé DGI 2025 = impôt synthétique, factures 2026 sans TVA, ancien modèle « TVA 0 % »). À valider avec le comptable (carte fiscale 2026 / attestation d'assujettissement) avant d'émettre. Avec `TVA_APPLICABLE = Non`, les PDF n'affichent ni HT, ni TVA, ni TTC.
 
 ## PDF
 Générés dans Google Drive : `MDC ERP - Exports PDF/Proformas/AAAA` et `.../Factures/AAAA`, nom `<N°> <Entité>[ - <Type>].pdf`.
-Rapatriement sur l'ordinateur et classement dans `D:\MDC\Gestion MDC` : géré avec la session « Gestion et mise en place de société » (mode à valider : Google Drive pour ordinateur ou téléchargement).
+Rapatriement sur l'ordinateur : Google Drive pour ordinateur (à installer par Tiavina, non installé au 02/11/2026) ou téléchargement zip. La session « Assistant MDC » **copie** ensuite les PDF dans `D:\MDC\Gestion MDC` en suivant l'onglet **Exports** :
+- Proforma → `02 Finance\Proformas et devis\AAAA\`
+- Toutes les factures → `02 Finance\Factures emises\AAAA\` (à plat)
+- Copie de chaque document lié à une session → `04 Formations\Sessions\AAAA-MM Entité - Formation\Facturation\`
+- AAAA = année du numéro. Elle coche « Classé sur le PC » une fois la copie faite (à la main ou sur instruction).
 
 ## Sécurité
 - La clé HubSpot est stockée dans les propriétés du script, jamais dans la feuille.

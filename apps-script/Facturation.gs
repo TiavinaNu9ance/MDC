@@ -12,7 +12,7 @@ function donneesFormulaire() {
       return { code: c['Code'], domaine: c['Domaine'], designation: c['Désignation'], duree: c['Durée (h)'], pu: c['Prix unitaire HT'], unite: c['Unité'] };
     }),
     validite: param_('VALIDITE_PROFORMA_JOURS', 30),
-    tva: Number(param_('TAUX_TVA', 0))
+    tva: tauxTva_()
   };
 }
 
@@ -54,10 +54,13 @@ function ecrireLignes_(idDoc, lignes, lieuDefaut) {
 }
 
 function totaux_(ht) {
-  const taux = Number(param_('TAUX_TVA', 0)) || 0;
+  const taux = tauxTva_();
   const tva = arrondi_(ht * taux);
   return { ht: arrondi_(ht), tva: tva, ttc: arrondi_(ht) + tva, taux: taux };
 }
+
+function tvaApplicable_() { return String(param_('TVA_APPLICABLE', 'Non')).toLowerCase() === 'oui'; }
+function tauxTva_() { return tvaApplicable_() ? (Number(param_('TAUX_TVA', 0)) || 0) : 0; }
 
 function lignesDe_(idDoc) {
   return lire_(ONGLETS.LIGNES).filter(function (l) { return l['ID Document'] === idDoc; })

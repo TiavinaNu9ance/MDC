@@ -24,6 +24,7 @@ function onOpen() {
       .addItem('Créer les relances FMFP dues', 'creerRelancesHubSpot'))
     .addSeparator()
     .addItem('Actualiser le tableau de bord', 'actualiserTableauDeBord')
+    .addItem('Actualiser l\'onglet Exports', 'actualiserExports')
     .addItem('Initialiser / mettre à jour la structure', 'initialiserStructure')
     .addToUi();
 }

@@ -62,6 +62,7 @@ function appliquerValidations_() {
   ['CV formateurs envoyés', 'Rapports envoyés', 'Fiches de présence envoyées', 'Relance HubSpot créée'].forEach(function (c) {
     colRange_(ONGLETS.FMFP, c).insertCheckboxes();
   });
+  colRange_(ONGLETS.EXPORTS, 'Classé sur le PC').insertCheckboxes();
   colRange_(ONGLETS.PARTICIPANTS, 'Attestation').setDataValidation(liste_(['Oui', 'Non (présence < 80 %)', 'À vérifier']));
 }
 
@@ -74,7 +75,7 @@ function formats_() {
    [ONGLETS.CATALOGUE, ['Prix unitaire HT']]].forEach(function (x) {
     x[1].forEach(function (c) { colRange_(x[0], c).setNumberFormat(money); });
   });
-  [[ONGLETS.PROFORMAS, ['Date']], [ONGLETS.FACTURES, ['Date', 'Date dernier paiement']], [ONGLETS.PAIEMENTS, ['Date']],
+  [[ONGLETS.PROFORMAS, ['Date']], [ONGLETS.FACTURES, ['Date', 'Date dernier paiement']], [ONGLETS.PAIEMENTS, ['Date']], [ONGLETS.EXPORTS, ['Date']],
    [ONGLETS.SESSIONS, ['Date début', 'Date fin']], [ONGLETS.FMFP, ['Date étape', 'Prochaine relance']]].forEach(function (x) {
     x[1].forEach(function (c) { colRange_(x[0], c).setNumberFormat('dd/MM/yyyy'); });
   });

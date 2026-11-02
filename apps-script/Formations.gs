@@ -26,6 +26,7 @@ function creerSessionDepuisProforma() {
       'CV formateurs envoyés': false, 'Rapports envoyés': false, 'Fiches de présence envoyées': false, 'Relance HubSpot créée': false
     });
   }
+  actualiserExports();
   journal_('Session créée', id + ' ← ' + p['N°'] + ' (FMFP : ' + fmfp + ')');
   ui.alert('Session ' + id + ' créée' + (fmfp === 'Oui' ? ' + dossier FMFP.' : '.') + ' Complétez formateurs et dates dans « Sessions ».');
 }
@@ -103,6 +104,7 @@ function onEdit(e) {
 function actualiserTableauDeBord() {
   recalculerPaiements();
   controlerPhases();
+  actualiserExports();
   const f = lire_(ONGLETS.FACTURES).filter(function (x) { return x['Statut'] !== 'Annulée' && x['Compte dans encaissements'] === 'Oui'; });
   const annee = new Date().getFullYear();
   const caAnnee = f.filter(function (x) { return new Date(x['Date']).getFullYear() === annee; })

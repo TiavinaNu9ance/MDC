@@ -15,7 +15,7 @@ AAMM-F-TT-NNNNN
 | `TT` | Type : `PF` = proforma, `DE` = facture définitive | `DE` |
 | `NNNNN` | Compteur sur 5 chiffres | `00071` |
 
-Exemples : `2611-F-PF-00011` (proforma), `2611-F-DE-00071` (facture).
+Exemples : `2611-F-PF-00073` (proforma), `2611-F-DE-00071` (facture).
 
 ## Règles
 
@@ -36,7 +36,7 @@ Exemples : `2611-F-PF-00011` (proforma), `2611-F-DE-00071` (facture).
 L'ancienne pratique a produit des doublons (compteur remis à 00001 en juin 2026, même numéro pour 70 % / 30 % / 100 %). Pour éviter toute collision :
 
 - **Factures (DE)** : le compteur 2026 reprend à **00071** (le plus haut numéro déjà utilisé en 2026 est 00070). Paramètre `COMPTEUR_DEPART_DE_2026 = 70`.
-- **Proformas (PF)** : le dernier numéro 2026 utilisé doit être saisi dans `COMPTEUR_DEPART_PF_2026` avant la première émission (l'ERP bloque tant qu'il est vide).
+- **Proformas (PF)** : le compteur 2026 reprend à **00073** (plus haut numéro 2026 : `2605-F-PF-00072`, HELIOS). Paramètre `COMPTEUR_DEPART_PF_2026 = 72`.
 - Les factures émises avant l'ERP ne sont pas renumérotées.
 
 ## Où sont gérés les compteurs
@@ -47,7 +47,7 @@ Onglet **Compteurs** de la Google Sheet : une ligne par année et par type (dern
 
 | Étape | Document | Numéro |
 |---|---|---|
-| Offre | Proforma | `2611-F-PF-00011` |
+| Offre | Proforma | `2611-F-PF-00073` |
 | Dossier FMFP | Facture 100 % (non encaissée, pour le dossier) | `2611-F-DE-00071` |
 | Avant formation | Facture d'acompte 70 % | `2611-F-DE-00072` |
 | Après formation | Facture de solde 30 % | `2612-F-DE-00078` |

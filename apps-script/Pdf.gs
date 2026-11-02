@@ -8,7 +8,49 @@ function genererPdf_(type, doc) {
   // Remplace un PDF existant du même nom (régénération).
   const ex = dossier.getFilesByName(nom);
   while (ex.hasNext()) ex.next().setTrashed(true);
-  return dossier.createFile(blob).getUrl();
+  const url = dossier.createFile(blob).getUrl();
+  enregistrerExport_(type, doc, nom, url);
+  return url;
+}
+
+/**
+ * Onglet « Exports » : une ligne par PDF, avec le dossier cible sur le PC,
+ * pour que la session « Assistant MDC » classe les fichiers dans D:\MDC\Gestion MDC.
+ */
+function enregistrerExport_(type, doc, nom, url) {
+  const numPf = type === 'PF' ? doc['N°'] : doc['N° Proforma'];
+  const pf = trouver_(ONGLETS.PROFORMAS, 'N°', numPf) || {};
+  const idSession = pf['ID Session'] || '';
+  const annee = '20' + String(doc['N°']).slice(0, 2); // l'année vient du numéro
+  const cible = type === 'PF' ? '02 Finance\\Proformas et devis\\' + annee : '02 Finance\\Factures emises\\' + annee;
+  const obj = {
+    'N°': doc['N°'], 'Date': doc['Date'], 'Type': type === 'PF' ? 'Proforma' : doc['Type'], 'N° Proforma': numPf,
+    'ID Entité': doc['ID Entité'], 'Raison sociale': doc['Raison sociale'], 'ID Session': idSession,
+    'Dossier session (PC)': idSession ? dossierSessionPc_(idSession) : '', 'Dossier cible (PC)': cible,
+    'Nom du fichier': nom, 'Lien Drive': url, 'Classé sur le PC': false, 'Exporté le': new Date()
+  };
+  const ex = lire_(ONGLETS.EXPORTS).filter(function (e) { return e['N°'] === doc['N°']; })[0];
+  if (ex) maj_(ONGLETS.EXPORTS, ex._row, obj); else ajouter_(ONGLETS.EXPORTS, obj);
+}
+
+/** « 04 Formations\Sessions\AAAA-MM Entité - Formation\Facturation » (règle du LISEZ-MOI). */
+function dossierSessionPc_(idSession) {
+  const s = trouver_(ONGLETS.SESSIONS, 'ID Session', idSession);
+  if (!s) return '';
+  const pf = trouver_(ONGLETS.PROFORMAS, 'N°', s['N° Proforma']) || {};
+  const d = new Date(s['Date début'] || pf['Date'] || new Date());
+  const aaaamm = Utilities.formatDate(d, ss_().getSpreadsheetTimeZone(), 'yyyy-MM');
+  const nom = (aaaamm + ' ' + s['Raison sociale'] + ' - ' + s['Intitulé']).replace(/[\\\/:*?"<>|]/g, '-').slice(0, 120);
+  return '04 Formations\\Sessions\\' + nom + '\\Facturation';
+}
+
+/** Recalcule la colonne « Dossier session (PC) » (après création de session ou saisie de la date de début). */
+function actualiserExports() {
+  lire_(ONGLETS.EXPORTS).forEach(function (e) {
+    const pf = trouver_(ONGLETS.PROFORMAS, 'N°', e['N° Proforma']) || {};
+    const id = pf['ID Session'] || '';
+    if (id) maj_(ONGLETS.EXPORTS, e._row, { 'ID Session': id, 'Dossier session (PC)': dossierSessionPc_(id) });
+  });
 }
 
 function dossierExport_(sous, annee) {
@@ -38,7 +80,9 @@ function htmlDocument_(type, doc) {
   const signature = imageDataUri_(P('SIGNATURE_FILE_ID'));
   const estPF = type === 'PF';
   const titre = estPF ? 'Facture Proforma' : 'Facture';
-  const taux = Number(P('TAUX_TVA', 0)) || 0;
+  const avecTva = tvaApplicable_();
+  const taux = tauxTva_();
+  const sfx = avecTva ? ' HT' : '';
   const pct = estPF ? 100 : Number(doc['%']) || 100;
   const htLignes = lignes.reduce(function (s, l) { return s + Number(l['Montant HT'] || 0); }, 0);
 
@@ -51,12 +95,12 @@ function htmlDocument_(type, doc) {
       '<td class="r">' + fmtMontant_(l['Montant HT']) + '</td></tr>';
   }).join('');
 
-  let totaux = '<tr><td>Sous-total HT</td><td class="r">' + fmtMontant_(htLignes) + ' ' + devise + '</td></tr>';
+  let totaux = '<tr><td>Sous-total' + sfx + '</td><td class="r">' + fmtMontant_(htLignes) + ' ' + devise + '</td></tr>';
   if (!estPF && pct !== 100) {
     totaux += '<tr><td>' + echapper_(doc['Type']) + ' (sur proforma ' + echapper_(doc['N° Proforma']) + ')</td><td class="r">' + fmtMontant_(doc['Total HT']) + ' ' + devise + '</td></tr>';
   }
-  totaux += '<tr><td>TVA ' + Math.round(taux * 100) + ' %</td><td class="r">' + fmtMontant_(doc['TVA']) + ' ' + devise + '</td></tr>' +
-    '<tr class="tot"><td>Total TTC à payer</td><td class="r">' + fmtMontant_(doc['Total TTC']) + ' ' + devise + '</td></tr>';
+  if (avecTva) totaux += '<tr><td>TVA ' + Math.round(taux * 100) + ' %</td><td class="r">' + fmtMontant_(doc['TVA']) + ' ' + devise + '</td></tr>';
+  totaux += '<tr class="tot"><td>Total' + (avecTva ? ' TTC' : '') + ' à payer</td><td class="r">' + fmtMontant_(doc['Total TTC']) + ' ' + devise + '</td></tr>';
 
   const particulier = !ent['NIF'] && !ent['STAT']; // sans NIF ni STAT : MVola affiché
   const validite = estPF ? new Date(new Date(doc['Date']).getTime() + Number(doc['Validité (jours)'] || 30) * 86400000) : null;
@@ -85,11 +129,11 @@ function htmlDocument_(type, doc) {
     echapper_(ent['Adresse']) + (ent['Email'] ? '<br>' + echapper_(ent['Email']) : '') + (ent['Téléphone'] ? ' — ' + echapper_(ent['Téléphone']) : '') +
     (ent['NIF'] ? '<br>NIF : ' + echapper_(ent['NIF']) : '') + (ent['STAT'] ? ' — STAT : ' + echapper_(ent['STAT']) : '') + '</div>' +
     (doc['Objet'] ? '<p><b>Objet :</b> ' + echapper_(doc['Objet']) + '</p>' : '') +
-    '<table><tr><th>Domaine</th><th>Formation / Prestation</th><th class="c">Durée</th><th class="c">Qté</th><th class="r">Prix unitaire HT</th><th class="r">Montant HT</th></tr>' +
+    '<table><tr><th>Domaine</th><th>Formation / Prestation</th><th class="c">Durée</th><th class="c">Qté</th><th class="r">Prix unitaire' + sfx + '</th><th class="r">Montant' + sfx + '</th></tr>' +
     lignesHtml + '</table>' +
     '<table class="totaux">' + totaux + '</table>' +
     '<div class="notes"><b>Arrêté' + (estPF ? 'e la présente facture proforma' : 'e la présente facture') + ' à la somme de :</b> ' +
-    enLettres_(doc['Total TTC']) + ' Ariary TTC.<br>' +
+    enLettres_(doc['Total TTC']) + ' Ariary' + (avecTva ? ' TTC' : '') + '.<br>' +
     '<b>Conditions de paiement :</b> ' + echapper_(P('CONDITIONS_PAIEMENT')) + '<br>' +
     '<b>Paiement par virement bancaire :</b> ' + echapper_(P('RIB')) +
     (particulier ? '<br><b>MVola :</b> ' + echapper_(P('MVOLA')) : '') + '</div>' +
