@@ -86,7 +86,7 @@ function journal_(action, detail) {
   try {
     ajouter_(ONGLETS.JOURNAL, {
       'Horodatage': new Date(), 'Action': action, 'Détail': detail,
-      'Utilisateur': Session.getActiveUser().getEmail()
+      'Utilisateur': (typeof UTILISATEUR_COURANT_ !== 'undefined' && UTILISATEUR_COURANT_) || Session.getActiveUser().getEmail()
     });
   } catch (e) { /* le journal ne doit jamais bloquer */ }
 }

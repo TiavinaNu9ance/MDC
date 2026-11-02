@@ -21,6 +21,7 @@ const ONGLETS = {
   DASHBOARD: 'Tableau de bord',
   EXPORTS: 'Exports',
   IMPORT: 'Import HubSpot',
+  UTILISATEURS: 'Utilisateurs',
   JOURNAL: 'Journal'
 };
 
@@ -33,14 +34,14 @@ const COLONNES = {
   'Catalogue': ['Code', 'Domaine', 'Désignation', 'Niveau', 'Durée (h)', 'Prix unitaire HT', 'Unité', 'Actif'],
   'Formateurs': ['ID Formateur', 'Nom', 'Email', 'Téléphone', 'Domaines', 'Lien CV (FMFP)', 'Tarif journalier', 'Actif'],
   'Proformas': ['ID', 'N°', 'Date', 'Validité (jours)', 'ID Entité', 'Raison sociale', 'Contact client', 'Objet',
-    'Lieu', 'Total HT', 'TVA', 'Total TTC', 'Statut', 'ID Session', 'Lien PDF', 'Créée le'],
+    'Lieu', 'Total HT', 'Taux TVA', 'TVA', 'Total TTC', 'Statut', 'ID Session', 'Lien PDF', 'Créée le'],
   'Factures': ['ID', 'N°', 'Date', 'Type', '%', 'N° Proforma', 'ID Entité', 'Raison sociale', 'Contact client',
-    'Total HT', 'TVA', 'Total TTC', 'Compte dans encaissements', 'Montant payé', 'Reste à payer',
+    'Total HT', 'Taux TVA', 'TVA', 'Total TTC', 'Compte dans encaissements', 'Montant payé', 'Reste à payer',
     'Statut paiement', 'Date dernier paiement', 'Statut', 'Lien PDF', 'Créée le'],
   'Lignes': ['ID Document', 'Ordre', 'Code', 'Domaine', 'Désignation', 'Lieu', 'Durée', 'Quantité',
     'Prix unitaire HT', 'Montant HT'],
   'Paiements': ['Date', 'N° Facture', 'Montant', 'Mode', 'Référence', 'Saisi le'],
-  'Sessions': ['ID Session', 'ID Entité', 'Raison sociale', 'Intitulé', 'Formateur(s)', 'Date début', 'Date fin',
+  'Sessions': ['ID Session', 'ID Entité', 'Raison sociale', 'Intitulé', 'Formateur(s)', 'ID Formateurs', 'Date début', 'Date fin',
     'Lieu', 'Nb participants', 'N° Proforma', 'FMFP',
     'P1 Analyse des besoins', 'P2 Test de niveau', 'P3 Validation des niveaux',
     'P4 Suivi pendant la formation', 'P5 Évaluation finale', 'P6 Clôture et compte rendu',
@@ -54,8 +55,11 @@ const COLONNES = {
   'Exports': ['N°', 'Date', 'Type', 'N° Proforma', 'ID Entité', 'Raison sociale', 'ID Session',
     'Dossier session (PC)', 'Dossier cible (PC)', 'Nom du fichier', 'Lien Drive', 'Classé sur le PC', 'Exporté le'],
   'Import HubSpot': ['Record ID', 'Company name', 'Parent company ID', 'Street address', 'City', 'Phone number', 'Email'],
+  'Utilisateurs': ['Email', 'Nom', 'Rôle', 'Est formateur', 'ID Formateur', 'Actif', 'Dernière connexion', 'Créé le'],
   'Journal': ['Horodatage', 'Action', 'Détail', 'Utilisateur']
 };
+
+const ROLES = ['Formateur', 'Administrateur', 'Superadmin'];
 
 const STATUT_PHASE = ['À faire', 'En cours', 'Fait', 'N.A.'];
 const STATUT_PROFORMA = ['Brouillon', 'Émise', 'Acceptée', 'Refusée', 'Annulée'];
@@ -82,33 +86,41 @@ const ETAPES_FMFP = [
   '8. Clôturé'
 ];
 
-const PARAMS_DEFAUT = [
-  ['SOCIETE_NOM', 'MADAGASCAR DATA CAMP SARLU', 'Raison sociale'],
-  ['SOCIETE_NOM_COURT', 'Madagascar Data Camp', ''],
-  ['SOCIETE_ADRESSE', 'Lot II L 4 DE Ankadivato, Antananarivo 101, Madagascar', ''],
-  ['SOCIETE_EMAIL', 'contact@datacamp.business', ''],
-  ['SOCIETE_TEL', '038 59 637 90', ''],
-  ['SOCIETE_NIF', '4012353768', ''],
-  ['SOCIETE_STAT', '70202 11 2022 0 11337', ''],
-  ['SOCIETE_RCS', '2022B01295', ''],
-  ['MENTION_FISCALE_SUP', '', 'Mention fiscale supplémentaire en pied de page (à valider avec le comptable)'],
-  ['TVA_APPLICABLE', 'Oui', 'Oui / Non. Assujettissement à faire confirmer (récépissé 2025 = impôt synthétique, aucune pièce TVA trouvée).'],
-  ['TAUX_TVA', 0.2, 'Taux de TVA si applicable (20 % = 0.2). À CONFIRMER avec le comptable.'],
-  ['DEVISE', 'Ar', ''],
-  ['POURCENT_ACOMPTE', 70, 'Pourcentage par défaut de la facture d\'acompte'],
-  ['CONDITIONS_PAIEMENT', 'Au comptant — 70 % avant la date de la formation / 30 % après la date de fin de la formation', ''],
-  ['RIB', 'Banque BMOI Tsaralalana Antananarivo 101 Madagascar — Compte N° 00004 00002 04813420101 10 — Titulaire : Madagascar Data Camp', ''],
-  ['MVOLA', '038 59 637 90', 'Affiché seulement pour les particuliers'],
-  ['VALIDITE_PROFORMA_JOURS', 30, 'Validité par défaut d\'une proforma'],
-  ['DELAI_RELANCE_FMFP_JOURS', 7, 'Jours entre une étape FMFP et la relance'],
-  ['LOGO_FILE_ID', '', 'ID Google Drive du logo MDC (PNG/JPG)'],
-  ['SIGNATURE_FILE_ID', '', 'ID Google Drive de l\'image tampon + signature (optionnel)'],
-  ['DOSSIER_EXPORT_ID', '', 'Rempli par l\'initialisation : dossier Drive des PDF'],
-  ['COMPTEUR_DEPART_DE_2026', 70, 'Dernier n° de facture déjà utilisé en 2026 (ancienne série). Prochaine = +1'],
-  ['COMPTEUR_DEPART_PF_2026', 72, 'Dernier n° de proforma utilisé en 2026 (2605-F-PF-00072 HELIOS). Prochaine = +1'],
-  ['COULEUR_PRINCIPALE', '#1B2B5E', ''],
-  ['COULEUR_ACCENT', '#C89B2A', '']
+/**
+ * Paramètres : [clé, valeur par défaut, libellé, groupe, type, aide].
+ * Types : text, textarea, number, percent (stocké 0.2 = 20 %), toggle (Oui/Non), color, image (ID Drive), readonly.
+ */
+const PARAMS_SCHEMA = [
+  ['SOCIETE_NOM', 'MADAGASCAR DATA CAMP SARLU', 'Raison sociale', 'Société', 'text', ''],
+  ['SOCIETE_NOM_COURT', 'Madagascar Data Camp', 'Nom commercial', 'Société', 'text', ''],
+  ['SOCIETE_ADRESSE', 'Lot II L 4 DE Ankadivato, Antananarivo 101, Madagascar', 'Adresse', 'Société', 'textarea', ''],
+  ['SOCIETE_EMAIL', 'contact@datacamp.business', 'E-mail', 'Société', 'text', ''],
+  ['SOCIETE_TEL', '038 59 637 90', 'Téléphone', 'Société', 'text', ''],
+  ['SOCIETE_NIF', '4012353768', 'NIF', 'Société', 'text', ''],
+  ['SOCIETE_STAT', '70202 11 2022 0 11337', 'STAT', 'Société', 'text', ''],
+  ['SOCIETE_RCS', '2022B01295', 'RCS', 'Société', 'text', ''],
+  ['TVA_APPLICABLE', 'Oui', 'TVA activée par défaut', 'Facturation', 'toggle', 'Valeur proposée sur chaque nouvelle proforma (modifiable document par document).'],
+  ['TAUX_TVA', 0.2, 'Taux de TVA', 'Facturation', 'percent', ''],
+  ['DEVISE', 'Ar', 'Devise', 'Facturation', 'text', ''],
+  ['POURCENT_ACOMPTE', 70, 'Acompte (%)', 'Facturation', 'number', 'Pourcentage de la facture d\'acompte.'],
+  ['VALIDITE_PROFORMA_JOURS', 30, 'Validité des proformas (jours)', 'Facturation', 'number', ''],
+  ['CONDITIONS_PAIEMENT', 'Au comptant — 70 % avant la date de la formation / 30 % après la date de fin de la formation', 'Conditions de paiement', 'Facturation', 'textarea', ''],
+  ['RIB', 'Banque BMOI Tsaralalana Antananarivo 101 Madagascar — Compte N° 00004 00002 04813420101 10 — Titulaire : Madagascar Data Camp', 'Coordonnées bancaires', 'Facturation', 'textarea', ''],
+  ['MVOLA', '038 59 637 90', 'Numéro MVola', 'Facturation', 'text', 'Affiché pour les clients sans NIF ni STAT (particuliers).'],
+  ['MENTION_FISCALE_SUP', '', 'Mention fiscale (pied de page)', 'Facturation', 'text', 'Ex. n° d\'assujetti TVA.'],
+  ['COMPTEUR_DEPART_DE_2026', 70, 'Départ compteur factures 2026', 'Numérotation', 'number', 'Utilisé seulement avant la première facture 2026 émise par l\'ERP.'],
+  ['COMPTEUR_DEPART_PF_2026', 72, 'Départ compteur proformas 2026', 'Numérotation', 'number', 'Utilisé seulement avant la première proforma 2026 émise par l\'ERP.'],
+  ['DELAI_RELANCE_FMFP_JOURS', 7, 'Délai de relance FMFP (jours)', 'Formation', 'number', ''],
+  ['SEUIL_ATTESTATION', 80, 'Présence minimale pour l\'attestation (%)', 'Formation', 'number', ''],
+  ['LOGO_FILE_ID', '', 'Logo (documents)', 'Apparence', 'image', 'PNG ou JPG.'],
+  ['SIGNATURE_FILE_ID', '', 'Tampon et signature', 'Apparence', 'image', 'Optionnel, ajouté en bas des documents.'],
+  ['COULEUR_PRINCIPALE', '#1B2B5E', 'Couleur principale (documents)', 'Apparence', 'color', ''],
+  ['COULEUR_ACCENT', '#C89B2A', 'Couleur d\'accent (documents)', 'Apparence', 'color', ''],
+  ['SESSION_DUREE_JOURS', 7, 'Durée de connexion (jours)', 'Sécurité', 'number', 'Au-delà, un nouveau code est demandé.'],
+  ['EXPEDITEUR_NOM', 'MDC ERP', 'Nom d\'expéditeur des e-mails', 'Sécurité', 'text', ''],
+  ['DOSSIER_EXPORT_ID', '', 'Dossier Drive des PDF', 'Système', 'readonly', 'Créé à l\'initialisation.']
 ];
+const PARAMS_DEFAUT = PARAMS_SCHEMA.map(function (p) { return [p[0], p[1], p[2] + (p[5] ? ' — ' + p[5] : '')]; });
 
 const CATALOGUE_DEFAUT = [
   // Code, Domaine, Désignation, Niveau, Durée, Prix, Unité
@@ -238,7 +250,7 @@ function journal_(action, detail) {
   try {
     ajouter_(ONGLETS.JOURNAL, {
       'Horodatage': new Date(), 'Action': action, 'Détail': detail,
-      'Utilisateur': Session.getActiveUser().getEmail()
+      'Utilisateur': (typeof UTILISATEUR_COURANT_ !== 'undefined' && UTILISATEUR_COURANT_) || Session.getActiveUser().getEmail()
     });
   } catch (e) { /* le journal ne doit jamais bloquer */ }
 }
@@ -309,12 +321,18 @@ function initialiserStructure() {
     setParam_('DOSSIER_EXPORT_ID', f.getId());
   }
 
+  // Premier superadmin : le propriétaire du script.
+  if (lire_(ONGLETS.UTILISATEURS).length === 0) {
+    const proprio = Session.getEffectiveUser().getEmail();
+    if (proprio) ajouter_(ONGLETS.UTILISATEURS, { 'Email': proprio.toLowerCase(), 'Nom': proprio.split('@')[0], 'Rôle': 'Superadmin',
+      'Est formateur': 'Non', 'Actif': 'Oui', 'Créé le': new Date() });
+  }
   appliquerValidations_();
   formats_();
   const def = ss.getSheetByName('Feuille 1') || ss.getSheetByName('Sheet1');
   if (def && def.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(def);
   journal_('Initialisation', 'Structure créée / mise à jour');
-  alerte_('Structure MDC ERP prête. Vérifiez l\'onglet Paramètres (TVA, logo), puis déployez l\'application web.');
+  alerte_('Structure MDC ERP prête. Superadmin : ' + Session.getEffectiveUser().getEmail() + '. Déployez ensuite l\'application web.');
 }
 
 function liste_(valeurs) {
@@ -338,7 +356,10 @@ function appliquerValidations_() {
     colRange_(ONGLETS.FMFP, c).insertCheckboxes();
   });
   colRange_(ONGLETS.EXPORTS, 'Classé sur le PC').insertCheckboxes();
-  colRange_(ONGLETS.PARTICIPANTS, 'Attestation').setDataValidation(liste_(['Oui', 'Non (présence < 80 %)', 'À vérifier']));
+  colRange_(ONGLETS.UTILISATEURS, 'Rôle').setDataValidation(liste_(ROLES));
+  colRange_(ONGLETS.UTILISATEURS, 'Est formateur').setDataValidation(liste_(['Oui', 'Non']));
+  colRange_(ONGLETS.UTILISATEURS, 'Actif').setDataValidation(liste_(['Oui', 'Non']));
+  colRange_(ONGLETS.PARTICIPANTS, 'Attestation').clearDataValidations();
 }
 
 function formats_() {
@@ -427,18 +448,54 @@ function creerProforma(data) {
   const ent = trouver_(ONGLETS.ENTITES, 'ID Entité', data.idEntite);
   if (!ent) throw new Error('Entité introuvable : ' + data.idEntite);
   const id = nouvelId_(ONGLETS.PROFORMAS, 'ID', 'P');
+  const taux = tauxSaisi_(data);
   const totalHT = ecrireLignes_(id, data.lignes, data.lieu);
-  const t = totaux_(totalHT);
+  const t = totaux_(totalHT, taux);
   ajouter_(ONGLETS.PROFORMAS, {
     'ID': id, 'N°': '', 'Date': data.date ? new Date(data.date) : new Date(),
     'Validité (jours)': data.validite || param_('VALIDITE_PROFORMA_JOURS', 30),
     'ID Entité': ent['ID Entité'], 'Raison sociale': ent['Raison sociale'],
     'Contact client': data.contact || ent['Contact principal'] || '', 'Objet': data.objet || '', 'Lieu': data.lieu || '',
-    'Total HT': t.ht, 'TVA': t.tva, 'Total TTC': t.ttc, 'Statut': 'Brouillon', 'Créée le': new Date()
+    'Total HT': t.ht, 'Taux TVA': taux, 'TVA': t.tva, 'Total TTC': t.ttc, 'Statut': 'Brouillon', 'Créée le': new Date()
   });
   journal_('Proforma créée', id + ' — ' + ent['Raison sociale']);
   if (data.emettre) return emettreProforma_(id);
   return { id: id, message: 'Proforma ' + id + ' créée en brouillon.' };
+}
+
+/** TVA choisie sur le document : data.avecTva (bool) et data.tauxTva (0.2 = 20 %). */
+function tauxSaisi_(data) {
+  if (data.avecTva === false) return 0;
+  if (data.tauxTva !== undefined && data.tauxTva !== '' && data.tauxTva !== null) return Number(data.tauxTva) || 0;
+  return tauxTva_();
+}
+
+/** Modifie une proforma en brouillon (en-tête + lignes). */
+function majBrouillon_(id, data) {
+  const p = trouver_(ONGLETS.PROFORMAS, 'ID', id);
+  if (!p) throw new Error('Proforma introuvable.');
+  if (p['Statut'] !== 'Brouillon' || p['N°']) throw new Error('Seul un brouillon peut être modifié.');
+  if (!data.lignes || !data.lignes.length) throw new Error('Ajoutez au moins une ligne.');
+  const ent = trouver_(ONGLETS.ENTITES, 'ID Entité', data.idEntite);
+  if (!ent) throw new Error('Entité introuvable.');
+  supprimerLignes_(id);
+  const taux = tauxSaisi_(data);
+  const t = totaux_(ecrireLignes_(id, data.lignes, data.lieu), taux);
+  maj_(ONGLETS.PROFORMAS, p._row, {
+    'Date': data.date ? new Date(data.date) : p['Date'], 'Validité (jours)': data.validite || p['Validité (jours)'],
+    'ID Entité': ent['ID Entité'], 'Raison sociale': ent['Raison sociale'], 'Contact client': data.contact || '',
+    'Objet': data.objet || '', 'Lieu': data.lieu || '', 'Total HT': t.ht, 'Taux TVA': taux, 'TVA': t.tva, 'Total TTC': t.ttc
+  });
+  journal_('Brouillon modifié', id);
+  if (data.emettre) return emettreProforma_(id);
+  return { id: id, message: 'Brouillon ' + id + ' enregistré.' };
+}
+
+function supprimerLignes_(idDoc) {
+  const s = sh_(ONGLETS.LIGNES);
+  lire_(ONGLETS.LIGNES).filter(function (l) { return l['ID Document'] === idDoc; })
+    .map(function (l) { return l._row; }).sort(function (a, b) { return b - a; })
+    .forEach(function (r) { s.deleteRow(r); });
 }
 
 function ecrireLignes_(idDoc, lignes, lieuDefaut) {
@@ -457,8 +514,13 @@ function ecrireLignes_(idDoc, lignes, lieuDefaut) {
   return total;
 }
 
-function totaux_(ht) {
-  const taux = tauxTva_();
+function tauxDoc_(doc) {
+  const t = doc ? doc['Taux TVA'] : '';
+  return t === '' || t === undefined || t === null ? tauxTva_() : Number(t) || 0;
+}
+
+function totaux_(ht, tauxForce) {
+  const taux = tauxForce === undefined ? tauxTva_() : Number(tauxForce) || 0;
   const tva = arrondi_(ht * taux);
   return { ht: arrondi_(ht), tva: tva, ttc: arrondi_(ht) + tva, taux: taux };
 }
@@ -483,9 +545,10 @@ function emettreProforma_(id) {
   if (p['N°']) throw new Error('Cette proforma a déjà le numéro ' + p['N°'] + '. Utilisez « Régénérer le PDF ».');
   // Recalcule les totaux depuis les lignes (si modifiées à la main en brouillon).
   const ht = lignesDe_(id).reduce(function (s, l) { return s + Number(l['Montant HT'] || 0); }, 0);
-  const t = totaux_(ht);
+  const taux = tauxDoc_(p);
+  const t = totaux_(ht, taux);
   const numero = prochainNumero_('PF', p['Date']);
-  maj_(ONGLETS.PROFORMAS, p._row, { 'N°': numero, 'Statut': 'Émise', 'Total HT': t.ht, 'TVA': t.tva, 'Total TTC': t.ttc });
+  maj_(ONGLETS.PROFORMAS, p._row, { 'N°': numero, 'Statut': 'Émise', 'Total HT': t.ht, 'Taux TVA': taux, 'TVA': t.tva, 'Total TTC': t.ttc });
   const url = genererPdf_('PF', trouver_(ONGLETS.PROFORMAS, 'ID', id));
   maj_(ONGLETS.PROFORMAS, p._row, { 'Lien PDF': url });
   return { id: id, numero: numero, url: url, message: 'Proforma ' + numero + ' émise. PDF : ' + url };
@@ -532,13 +595,14 @@ function creerFactureDepuisProforma_(idProforma, type) {
     return { code: l['Code'], domaine: l['Domaine'], designation: l['Désignation'], lieu: l['Lieu'], duree: l['Durée'], quantite: l['Quantité'], pu: l['Prix unitaire HT'] };
   });
   const htTotal = ecrireLignes_(id, lignes, p['Lieu']);
-  const t = totaux_(htTotal * pct / 100);
+  const taux = tauxDoc_(p);
+  const t = totaux_(htTotal * pct / 100, taux);
   const date = new Date();
   const numero = prochainNumero_('DE', date);
   const row = ajouter_(ONGLETS.FACTURES, {
     'ID': id, 'N°': numero, 'Date': date, 'Type': libelle, '%': pct, 'N° Proforma': p['N°'],
     'ID Entité': p['ID Entité'], 'Raison sociale': p['Raison sociale'], 'Contact client': p['Contact client'],
-    'Total HT': t.ht, 'TVA': t.tva, 'Total TTC': t.ttc,
+    'Total HT': t.ht, 'Taux TVA': taux, 'TVA': t.tva, 'Total TTC': t.ttc,
     'Compte dans encaissements': def.compte ? 'Oui' : 'Non',
     'Montant payé': 0, 'Reste à payer': def.compte ? t.ttc : 0,
     'Statut paiement': def.compte ? 'Impayée' : 'N.A. (dossier FMFP)', 'Statut': 'Émise', 'Créée le': new Date()
@@ -628,6 +692,109 @@ function recalculerPaiements() {
   });
 }
 
+/* ===== Gabarit.gs ===== */
+/**
+ * MDC ERP — Gabarit des proformas et factures.
+ * Utilisé à l'identique par le serveur (PDF) et par l'interface (aperçu en direct) :
+ * le code source de ces deux fonctions est injecté dans la page web.
+ * Ces fonctions ne doivent dépendre de rien d'autre.
+ */
+function gabaritDocument(c) {
+  function e(t) {
+    return String(t === undefined || t === null ? '' : t)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function m(n) { return Math.round(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  const s = c.societe || {}, cl = c.client || {}, dev = c.devise || 'Ar';
+  const sfx = c.avecTva ? ' HT' : '';
+  const lignes = (c.lignes || []).map(function (l) {
+    return '<tr><td>' + e(l.domaine) + '</td><td>' + e(l.designation) +
+      (l.lieu ? '<br><span class="lieu">Lieu : ' + e(l.lieu) + '</span>' : '') + '</td>' +
+      '<td class="c">' + (l.duree ? e(l.duree) + ' h' : '') + '</td><td class="c">' + e(l.quantite) + '</td>' +
+      '<td class="r">' + m(l.pu) + '</td><td class="r">' + m(l.montant) + '</td></tr>';
+  }).join('') || '<tr><td colspan="6" class="vide">Aucune ligne</td></tr>';
+  let tot = '<tr><td>Sous-total' + sfx + '</td><td class="r">' + m(c.htLignes) + ' ' + dev + '</td></tr>';
+  if (c.pct && c.pct !== 100) tot += '<tr><td>' + e(c.typeLibelle) + (c.refProforma ? ' (sur proforma ' + e(c.refProforma) + ')' : '') + '</td><td class="r">' + m(c.ht) + ' ' + dev + '</td></tr>';
+  if (c.avecTva) tot += '<tr><td>TVA ' + (Math.round(c.taux * 1000) / 10) + ' %</td><td class="r">' + m(c.tva) + ' ' + dev + '</td></tr>';
+  tot += '<tr class="tot"><td>Total' + (c.avecTva ? ' TTC' : '') + ' à payer</td><td class="r">' + m(c.ttc) + ' ' + dev + '</td></tr>';
+  const c1 = c.c1 || '#1B2B5E', c2 = c.c2 || '#C89B2A';
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' +
+    'body{font-family:Arial,Helvetica,sans-serif;font-size:10.5px;color:#222;margin:28px;background:#fff}' +
+    'h1{color:' + c1 + ';font-size:24px;margin:0 0 6px}' +
+    '.box{border:1px solid #ddd;padding:8px 10px;margin-top:10px}' +
+    'table{width:100%;border-collapse:collapse;margin-top:14px}' +
+    'th{background:' + c2 + ';color:#fff;padding:6px;font-size:10px;text-align:left}' +
+    'td{font-size:10.5px;padding:6px;border-bottom:1px solid #eee;vertical-align:top}' +
+    '.c{text-align:center}.r{text-align:right;white-space:nowrap}.lieu{color:#666;font-size:9.5px}.vide{color:#999;text-align:center;padding:18px}' +
+    '.totaux{width:48%;margin-left:auto}.tot td{font-weight:bold;background:#F8F6F1;border-top:2px solid ' + c1 + '}' +
+    '.notes{margin-top:16px;font-size:10px;line-height:1.5}' +
+    '.foot{margin-top:24px;border-top:1px solid ' + c1 + ';padding-top:6px;font-size:9px;color:#555;text-align:center}' +
+    '.filigrane{position:fixed;top:40%;left:0;right:0;text-align:center;font-size:90px;color:rgba(0,0,0,.05);transform:rotate(-25deg);font-weight:bold}' +
+    '</style></head><body>' + (c.brouillon ? '<div class="filigrane">APERÇU</div>' : '') +
+    '<table style="margin:0"><tr><td style="border:0;width:55%">' +
+    (c.logo ? '<img src="' + c.logo + '" style="height:60px"><br>' : '<b style="font-size:16px;color:' + c1 + '">' + e(s.nom) + '</b><br>') +
+    e(s.adresse) + '<br>' + e(s.email) + ' — ' + e(s.tel) +
+    '</td><td style="border:0;text-align:right"><h1>' + e(c.titre) + '</h1>' +
+    '<b>N° :</b> ' + (c.numero ? e(c.numero) : '<i style="color:#999">attribué à l\'émission</i>') + '<br><b>Date :</b> ' + e(c.date) +
+    (c.validite ? '<br><b>Validité :</b> ' + e(c.validite) : '') + (c.refProforma && c.titre !== 'Facture Proforma' ? '<br><b>Réf. proforma :</b> ' + e(c.refProforma) : '') +
+    '<br><b>Contact client :</b> ' + e(c.contact) + '</td></tr></table>' +
+    '<div class="box"><b>Client</b><br><b>' + e(cl.nom) + '</b>' + (cl.adresse ? '<br>' + e(cl.adresse) : '') +
+    (cl.email ? '<br>' + e(cl.email) : '') + (cl.tel ? ' — ' + e(cl.tel) : '') +
+    (cl.nif ? '<br>NIF : ' + e(cl.nif) : '') + (cl.stat ? ' — STAT : ' + e(cl.stat) : '') + '</div>' +
+    (c.objet ? '<p><b>Objet :</b> ' + e(c.objet) + '</p>' : '') +
+    '<table><tr><th>Domaine</th><th>Formation / Prestation</th><th class="c">Durée</th><th class="c">Qté</th><th class="r">Prix unitaire' + sfx + '</th><th class="r">Montant' + sfx + '</th></tr>' +
+    lignes + '</table><table class="totaux">' + tot + '</table>' +
+    '<div class="notes"><b>Arrêté' + (c.titre === 'Facture Proforma' ? 'e la présente facture proforma' : 'e la présente facture') + ' à la somme de :</b> ' +
+    e(enLettres(c.ttc)) + ' Ariary' + (c.avecTva ? ' TTC' : '') + '.<br>' +
+    (c.conditions ? '<b>Conditions de paiement :</b> ' + e(c.conditions) + '<br>' : '') +
+    (c.rib ? '<b>Paiement par virement bancaire :</b> ' + e(c.rib) : '') +
+    (c.particulier && c.mvola ? '<br><b>MVola :</b> ' + e(c.mvola) : '') + '</div>' +
+    (c.signature ? '<div style="text-align:right;margin-top:12px"><img src="' + c.signature + '" style="height:90px"></div>' : '') +
+    '<div class="foot">' + e(s.nom) + ' — NIF : ' + e(s.nif) + ' — STAT : ' + e(s.stat) + ' — RCS : ' + e(s.rcs) +
+    (s.mention ? ' — ' + e(s.mention) : '') + '</div></body></html>';
+}
+
+/** Montant en toutes lettres (français). */
+function enLettres(n) {
+  n = Math.round(Math.abs(Number(n) || 0));
+  if (n === 0) return 'zéro';
+  const U = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze',
+    'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
+  const D = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante', 'quatre-vingt', 'quatre-vingt'];
+  function cent(x) {
+    if (x < 20) return U[x];
+    const d = Math.floor(x / 10), u = x % 10;
+    if (d === 7 || d === 9) return D[d] + (d === 7 && u === 1 ? ' et ' : '-') + U[10 + u];
+    if (u === 0) return D[d] + (d === 8 ? 's' : '');
+    if (u === 1 && d !== 8) return D[d] + ' et un';
+    return D[d] + '-' + U[u];
+  }
+  function mille(x, fin) {
+    const c = Math.floor(x / 100), r = x % 100;
+    let s = '';
+    if (c > 0) s = (c > 1 ? U[c] + ' ' : '') + 'cent' + (c > 1 && r === 0 && fin ? 's' : '');
+    if (r > 0) s += (s ? ' ' : '') + cent(r);
+    return s;
+  }
+  let s = '', reste = n;
+  [[1e9, 'milliard'], [1e6, 'million'], [1e3, 'mille']].forEach(function (k) {
+    const q = Math.floor(reste / k[0]);
+    reste = reste % k[0];
+    if (!q) return;
+    if (k[1] === 'mille') s += (q === 1 ? '' : mille(q, false) + ' ') + 'mille ';
+    else s += mille(q, true) + ' ' + k[1] + (q > 1 ? 's' : '') + ' ';
+  });
+  if (reste > 0) s += mille(reste, true);
+  return s.trim().replace(/quatre-vingts (mille)/g, 'quatre-vingt $1');
+}
+
+/** Source injectée dans la page web (aperçu identique au PDF). */
+function sourceGabarit_() {
+  return gabaritDocument.toString() + '\n' + enLettres.toString();
+}
+
+function enLettres_(n) { return enLettres(n); }
+
 /* ===== Pdf.gs ===== */
 /** MDC ERP — Génération des PDF (proforma et facture) dans Google Drive. */
 function genererPdf_(type, doc) {
@@ -643,6 +810,101 @@ function genererPdf_(type, doc) {
   enregistrerExport_(type, doc, nom, url);
   return url;
 }
+
+/**
+ * Onglet « Exports » : une ligne par PDF, avec le dossier cible sur le PC,
+ * pour que la session « Assistant MDC » classe les fichiers dans D:\MDC\Gestion MDC.
+ */
+function enregistrerExport_(type, doc, nom, url) {
+  const numPf = type === 'PF' ? doc['N°'] : doc['N° Proforma'];
+  const pf = trouver_(ONGLETS.PROFORMAS, 'N°', numPf) || {};
+  const idSession = pf['ID Session'] || '';
+  const annee = '20' + String(doc['N°']).slice(0, 2); // l'année vient du numéro
+  const cible = type === 'PF' ? '02 Finance\\Proformas et devis\\' + annee : '02 Finance\\Factures emises\\' + annee;
+  const obj = {
+    'N°': doc['N°'], 'Date': doc['Date'], 'Type': type === 'PF' ? 'Proforma' : doc['Type'], 'N° Proforma': numPf,
+    'ID Entité': doc['ID Entité'], 'Raison sociale': doc['Raison sociale'], 'ID Session': idSession,
+    'Dossier session (PC)': idSession ? dossierSessionPc_(idSession) : '', 'Dossier cible (PC)': cible,
+    'Nom du fichier': nom, 'Lien Drive': url, 'Classé sur le PC': false, 'Exporté le': new Date()
+  };
+  const ex = lire_(ONGLETS.EXPORTS).filter(function (e) { return e['N°'] === doc['N°']; })[0];
+  if (ex) maj_(ONGLETS.EXPORTS, ex._row, obj); else ajouter_(ONGLETS.EXPORTS, obj);
+}
+
+/** « 04 Formations\Sessions\AAAA-MM Entité - Formation\Facturation » (règle du LISEZ-MOI). */
+function dossierSessionPc_(idSession) {
+  const s = trouver_(ONGLETS.SESSIONS, 'ID Session', idSession);
+  if (!s) return '';
+  const pf = trouver_(ONGLETS.PROFORMAS, 'N°', s['N° Proforma']) || {};
+  const d = new Date(s['Date début'] || pf['Date'] || new Date());
+  const aaaamm = Utilities.formatDate(d, ss_().getSpreadsheetTimeZone(), 'yyyy-MM');
+  const nom = (aaaamm + ' ' + s['Raison sociale'] + ' - ' + s['Intitulé']).replace(/[\\\/:*?"<>|]/g, '-').slice(0, 120);
+  return '04 Formations\\Sessions\\' + nom + '\\Facturation';
+}
+
+/** Recalcule la colonne « Dossier session (PC) » (après création de session ou saisie de la date de début). */
+function actualiserExports() {
+  lire_(ONGLETS.EXPORTS).forEach(function (e) {
+    const pf = trouver_(ONGLETS.PROFORMAS, 'N°', e['N° Proforma']) || {};
+    const id = pf['ID Session'] || '';
+    if (id) maj_(ONGLETS.EXPORTS, e._row, { 'ID Session': id, 'Dossier session (PC)': dossierSessionPc_(id) });
+  });
+}
+
+function dossierExport_(sous, annee) {
+  const racine = DriveApp.getFolderById(param_('DOSSIER_EXPORT_ID'));
+  function enfant(parent, nom) {
+    const it = parent.getFoldersByName(nom);
+    return it.hasNext() ? it.next() : parent.createFolder(nom);
+  }
+  return enfant(enfant(racine, sous), String(annee));
+}
+
+function imageDataUri_(fileId) {
+  if (!fileId) return '';
+  try {
+    const b = DriveApp.getFileById(fileId).getBlob();
+    return 'data:' + b.getContentType() + ';base64,' + Utilities.base64Encode(b.getBytes());
+  } catch (e) { return ''; }
+}
+
+/** Partie fixe du contexte des documents (société, apparence, mentions). */
+function contexteSociete_(avecImages) {
+  const P = function (k, d) { return param_(k, d === undefined ? '' : d); };
+  return {
+    societe: { nom: P('SOCIETE_NOM'), adresse: P('SOCIETE_ADRESSE'), email: P('SOCIETE_EMAIL'), tel: P('SOCIETE_TEL'),
+      nif: P('SOCIETE_NIF'), stat: P('SOCIETE_STAT'), rcs: P('SOCIETE_RCS'), mention: P('MENTION_FISCALE_SUP') },
+    conditions: P('CONDITIONS_PAIEMENT'), rib: P('RIB'), mvola: P('MVOLA'), devise: P('DEVISE', 'Ar'),
+    c1: P('COULEUR_PRINCIPALE', '#1B2B5E'), c2: P('COULEUR_ACCENT', '#C89B2A'),
+    logo: avecImages === false ? '' : imageDataUri_(P('LOGO_FILE_ID')),
+    signature: avecImages === false ? '' : imageDataUri_(P('SIGNATURE_FILE_ID'))
+  };
+}
+
+/** Contexte complet d'un document enregistré (PF ou DE). */
+function contexteDocument_(type, doc) {
+  const c = contexteSociete_();
+  const ent = trouver_(ONGLETS.ENTITES, 'ID Entité', doc['ID Entité']) || {};
+  const estPF = type === 'PF';
+  const lignes = lignesDe_(doc['ID']).map(function (l) {
+    return { domaine: l['Domaine'], designation: l['Désignation'], lieu: l['Lieu'], duree: l['Durée'],
+      quantite: l['Quantité'], pu: l['Prix unitaire HT'], montant: l['Montant HT'] };
+  });
+  const taux = tauxDoc_(doc);
+  const validite = estPF ? new Date(new Date(doc['Date']).getTime() + Number(doc['Validité (jours)'] || 30) * 86400000) : null;
+  c.titre = estPF ? 'Facture Proforma' : 'Facture';
+  c.numero = doc['N°']; c.date = fmtDate_(doc['Date']); c.validite = validite ? fmtDate_(validite) : '';
+  c.refProforma = estPF ? '' : doc['N° Proforma']; c.contact = doc['Contact client']; c.objet = estPF ? doc['Objet'] : (trouver_(ONGLETS.PROFORMAS, 'N°', doc['N° Proforma']) || {})['Objet'];
+  c.typeLibelle = estPF ? '' : doc['Type']; c.pct = estPF ? 100 : Number(doc['%']) || 100;
+  c.client = { nom: ent['Raison sociale'] || doc['Raison sociale'], adresse: ent['Adresse'], email: ent['Email'], tel: ent['Téléphone'], nif: ent['NIF'], stat: ent['STAT'] };
+  c.particulier = !ent['NIF'] && !ent['STAT'];
+  c.lignes = lignes;
+  c.htLignes = lignes.reduce(function (s, l) { return s + Number(l.montant || 0); }, 0);
+  c.ht = doc['Total HT']; c.tva = doc['TVA']; c.ttc = doc['Total TTC']; c.taux = taux; c.avecTva = taux > 0;
+  return c;
+}
+
+function htmlDocument_(type, doc) { return gabaritDocument(contexteDocument_(type, doc)); }
 
 /**
  * Onglet « Exports » : une ligne par PDF, avec le dossier cible sur le PC,
@@ -774,54 +1036,6 @@ function htmlDocument_(type, doc) {
     '</body></html>';
 }
 
-/* ===== Lettres.gs ===== */
-/** MDC ERP — Montant en toutes lettres (français), ex. 470000 → « quatre cent soixante-dix mille ». */
-function enLettres_(n) {
-  n = Math.round(Math.abs(Number(n) || 0));
-  if (n === 0) return 'zéro';
-  const U = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze',
-    'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
-  const D = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante', 'quatre-vingt', 'quatre-vingt'];
-
-  function moinsDeCent(x) {
-    if (x < 20) return U[x];
-    const d = Math.floor(x / 10), u = x % 10;
-    if (d === 7 || d === 9) {
-      const reste = 10 + u;
-      return D[d] + (d === 7 && u === 1 ? ' et ' : '-') + U[reste];
-    }
-    if (u === 0) return D[d] + (d === 8 ? 's' : '');
-    if (u === 1 && d !== 8) return D[d] + ' et un';
-    return D[d] + '-' + U[u];
-  }
-  function moinsDeMille(x, final) {
-    const c = Math.floor(x / 100), r = x % 100;
-    let s = '';
-    if (c > 0) s = (c > 1 ? U[c] + ' ' : '') + 'cent' + (c > 1 && r === 0 && final ? 's' : '');
-    if (r > 0) s += (s ? ' ' : '') + moinsDeCent(r);
-    return s;
-  }
-  const echelles = [[1e9, 'milliard'], [1e6, 'million'], [1e3, 'mille']];
-  let s = '', reste = n;
-  echelles.forEach(function (e) {
-    const q = Math.floor(reste / e[0]);
-    reste = reste % e[0];
-    if (q === 0) return;
-    if (e[1] === 'mille') s += (q === 1 ? '' : moinsDeMille(q, false) + ' ') + 'mille ';
-    else s += moinsDeMille(q, true) + ' ' + e[1] + (q > 1 ? 's' : '') + ' ';
-  });
-  if (reste > 0) s += moinsDeMille(reste, true);
-  s = s.trim();
-  // « quatre-vingts » perd son s devant mille/millions dans certains cas : simplification conservée.
-  return s.replace(/quatre-vingts (mille)/g, 'quatre-vingt $1');
-}
-
-function testLettres() {
-  [470000, 18640000, 1541100, 2884000, 80, 71, 91, 200, 1000, 1001000, 2000000].forEach(function (n) {
-    Logger.log(n + ' → ' + enLettres_(n));
-  });
-}
-
 /* ===== Formations.gs ===== */
 /** MDC ERP — Sessions de formation, 6 phases MDC, participants, suivi FMFP. */
 
@@ -882,6 +1096,7 @@ function lierFactureFmfp_(numProforma, type, numFacture) {
  */
 function controlerPhases() {
   const participants = lire_(ONGLETS.PARTICIPANTS);
+  const seuil = Number(param_('SEUIL_ATTESTATION', 80));
   lire_(ONGLETS.SESSIONS).forEach(function (s) {
     const alertes = [];
     let actuelle = 'Terminée';
@@ -904,7 +1119,7 @@ function controlerPhases() {
     }
     ps.forEach(function (p) {
       const pres = Number(String(p['Présence (%)']).replace('%', ''));
-      if (p['Attestation'] === 'Oui' && pres && pres < 80) alertes.push(p['Nom'] + ' : attestation avec présence < 80 %');
+      if (p['Attestation'] === 'Oui' && pres && pres < seuil) alertes.push(p['Nom'] + ' : attestation avec présence < ' + seuil + ' %');
     });
     maj_(ONGLETS.SESSIONS, s._row, { 'Phase actuelle': actuelle, 'Alerte': alertes.join(' · ') });
   });
@@ -916,7 +1131,8 @@ function calculerAttestations() {
     if (p['Attestation'] || p['Présence (%)'] === '') return;
     const v = Number(String(p['Présence (%)']).replace('%', ''));
     const pres = v <= 1 ? v * 100 : v; // accepte 0,85 ou 85
-    maj_(ONGLETS.PARTICIPANTS, p._row, { 'Attestation': pres >= 80 ? 'Oui' : 'Non (présence < 80 %)' });
+    const seuil = Number(param_('SEUIL_ATTESTATION', 80));
+    maj_(ONGLETS.PARTICIPANTS, p._row, { 'Attestation': pres >= seuil ? 'Oui' : 'Non (présence < ' + seuil + ' %)' });
   });
 }
 
@@ -1108,68 +1324,178 @@ function creerRelancesHubSpotCore_() {
   return n;
 }
 
-/* ===== Menu.gs ===== */
-/** MDC ERP — Menu. */
-function onOpen() {
-  const ui = SpreadsheetApp.getUi();
-  ui.createMenu('MDC ERP')
-    .addItem('Nouvelle proforma…', 'ouvrirNouvelleProforma')
-    .addItem('Émettre la proforma sélectionnée', 'emettreProformaSelectionnee')
-    .addSubMenu(ui.createMenu('Facturer la proforma sélectionnée')
-      .addItem('Facture 100 % (dossier FMFP)', 'factureFmfp100')
-      .addItem('Facture d\'acompte (70 %)', 'factureAcompte')
-      .addItem('Facture de solde (reste)', 'factureSolde')
-      .addItem('Facture totale (100 %, hors FMFP)', 'factureTotale'))
-    .addItem('Enregistrer un paiement (facture sélectionnée)', 'enregistrerPaiement')
-    .addItem('Régénérer le PDF (ligne sélectionnée)', 'regenererPdfSelection')
-    .addItem('Annuler (ligne sélectionnée)', 'annulerSelection')
-    .addSeparator()
-    .addSubMenu(ui.createMenu('Formations')
-      .addItem('Créer la session depuis la proforma sélectionnée', 'creerSessionDepuisProforma')
-      .addItem('Contrôler les 6 phases', 'controlerPhases')
-      .addItem('Calculer les attestations (≥ 80 %)', 'calculerAttestations'))
-    .addSubMenu(ui.createMenu('HubSpot')
-      .addItem('Configurer la clé', 'configurerCleHubSpot')
-      .addItem('Synchroniser les entreprises (API)', 'synchroniserEntreprises')
-      .addItem('Importer depuis l\'onglet « Import HubSpot »', 'importerDepuisOnglet')
-      .addItem('Créer les relances FMFP dues', 'creerRelancesHubSpot'))
-    .addSeparator()
-    .addItem('Actualiser le tableau de bord', 'actualiserTableauDeBord')
-    .addItem('Actualiser l\'onglet Exports', 'actualiserExports')
-    .addItem('Initialiser / mettre à jour la structure', 'initialiserStructure')
-    .addToUi();
+/* ===== Auth.gs ===== */
+/**
+ * MDC ERP — Authentification par code à usage unique envoyé par e-mail.
+ * Seules les adresses de l'onglet « Utilisateurs » (Actif) peuvent se connecter.
+ * Rôles : Formateur, Administrateur, Superadmin (+ « Est formateur » pour cumuler).
+ */
+const OTP_TTL_S = 600, OTP_ESSAIS = 5, OTP_DELAI_S = 45;
+
+function hash_(texte) {
+  const props = PropertiesService.getScriptProperties();
+  let sel = props.getProperty('AUTH_SEL');
+  if (!sel) { sel = Utilities.getUuid(); props.setProperty('AUTH_SEL', sel); }
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, sel + '|' + texte)
+    .map(function (b) { return ((b + 256) % 256).toString(16).padStart(2, '0'); }).join('');
 }
 
-function ouvrirNouvelleProforma() {
-  const html = HtmlService.createHtmlOutputFromFile('NouvelleProforma').setWidth(980).setHeight(640);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Nouvelle proforma');
+function normEmail_(e) { return String(e || '').trim().toLowerCase(); }
+
+function utilisateurParEmail_(email) {
+  email = normEmail_(email);
+  return lire_(ONGLETS.UTILISATEURS).filter(function (u) { return normEmail_(u['Email']) === email; })[0] || null;
+}
+
+function estActif_(u) { return u && (u['Actif'] === true || u['Actif'] === 'Oui' || u['Actif'] === 'TRUE'); }
+function estFormateurFlag_(u) { return u['Rôle'] === 'Formateur' || u['Est formateur'] === true || u['Est formateur'] === 'Oui' || u['Est formateur'] === 'TRUE'; }
+
+function profil_(u) {
+  const admin = u['Rôle'] === 'Administrateur' || u['Rôle'] === 'Superadmin';
+  return {
+    email: normEmail_(u['Email']), nom: u['Nom'] || u['Email'], role: u['Rôle'],
+    admin: admin, superadmin: u['Rôle'] === 'Superadmin',
+    formateur: estFormateurFlag_(u) && !!u['ID Formateur'], idFormateur: u['ID Formateur'] || ''
+  };
+}
+
+/** Étape 1 : envoi du code. Réponse identique que l'adresse soit connue ou non. */
+function apiDemanderCode(email) {
+  email = normEmail_(email);
+  const neutre = { message: 'Si cette adresse est autorisée, un code de connexion vient de lui être envoyé.' };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error('Adresse e-mail invalide.');
+  const cache = CacheService.getScriptCache();
+  const cleRate = 'otp-rate:' + hash_(email);
+  if (cache.get(cleRate)) throw new Error('Un code vient d\'être envoyé. Patientez quelques secondes avant de redemander.');
+  cache.put(cleRate, '1', OTP_DELAI_S);
+  const u = utilisateurParEmail_(email);
+  if (!u || !estActif_(u)) { journal_('Connexion refusée', email); return neutre; }
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  cache.put('otp:' + hash_(email), JSON.stringify({ h: hash_(email + ':' + code), n: 0 }), OTP_TTL_S);
+  const nom = param_('EXPEDITEUR_NOM', 'MDC ERP');
+  MailApp.sendEmail({
+    to: email, name: nom, subject: 'Votre code de connexion ' + nom + ' : ' + code,
+    htmlBody: '<div style="font-family:-apple-system,Segoe UI,Arial,sans-serif;max-width:420px;margin:auto;padding:24px;color:#1d1d1f">' +
+      '<p style="font-size:15px">Bonjour ' + echapper_(u['Nom'] || '') + ',</p><p style="font-size:15px">Voici votre code de connexion :</p>' +
+      '<p style="font-size:34px;letter-spacing:8px;font-weight:600;margin:18px 0">' + code + '</p>' +
+      '<p style="color:#6e6e73;font-size:13px">Il est valable 10 minutes. Si vous n\'êtes pas à l\'origine de cette demande, ignorez ce message.</p></div>'
+  });
+  return neutre;
+}
+
+/** Étape 2 : vérification du code → jeton de session. */
+function apiVerifierCode(email, code) {
+  email = normEmail_(email);
+  const cache = CacheService.getScriptCache();
+  const cle = 'otp:' + hash_(email);
+  const brut = cache.get(cle);
+  if (!brut) throw new Error('Code expiré ou inexistant. Demandez un nouveau code.');
+  const o = JSON.parse(brut);
+  if (o.n >= OTP_ESSAIS) { cache.remove(cle); throw new Error('Trop de tentatives. Demandez un nouveau code.'); }
+  if (o.h !== hash_(email + ':' + String(code || '').trim())) {
+    o.n++; cache.put(cle, JSON.stringify(o), OTP_TTL_S);
+    throw new Error('Code incorrect (' + (OTP_ESSAIS - o.n) + ' essai(s) restant(s)).');
+  }
+  cache.remove(cle);
+  const u = utilisateurParEmail_(email);
+  if (!u || !estActif_(u)) throw new Error('Accès non autorisé.');
+  nettoyerSessions_();
+  const jeton = Utilities.getUuid() + Utilities.getUuid().replace(/-/g, '');
+  const duree = Number(param_('SESSION_DUREE_JOURS', 7)) || 7;
+  PropertiesService.getScriptProperties().setProperty('sess_' + hash_(jeton),
+    JSON.stringify({ e: email, x: Date.now() + duree * 86400000 }));
+  maj_(ONGLETS.UTILISATEURS, u._row, { 'Dernière connexion': new Date() });
+  journal_('Connexion', email);
+  return { jeton: jeton, moi: profil_(u) };
+}
+
+function apiDeconnexion(jeton) {
+  if (jeton) PropertiesService.getScriptProperties().deleteProperty('sess_' + hash_(jeton));
+  return { message: 'Déconnecté.' };
+}
+
+function nettoyerSessions_() {
+  const props = PropertiesService.getScriptProperties();
+  const tout = props.getProperties();
+  Object.keys(tout).forEach(function (k) {
+    if (k.indexOf('sess_') !== 0) return;
+    try { if (JSON.parse(tout[k]).x < Date.now()) props.deleteProperty(k); } catch (e) { props.deleteProperty(k); }
+  });
+}
+
+/**
+ * Contrôle d'accès de chaque appel. niveau : 'connecte' | 'admin' | 'superadmin'.
+ * Le compte est relu à chaque appel : une désactivation est immédiate.
+ */
+let UTILISATEUR_COURANT_ = null;
+function auth_(jeton, niveau) {
+  if (!jeton) throw new Error('SESSION_EXPIREE');
+  const brut = PropertiesService.getScriptProperties().getProperty('sess_' + hash_(jeton));
+  if (!brut) throw new Error('SESSION_EXPIREE');
+  const s = JSON.parse(brut);
+  if (s.x < Date.now()) { apiDeconnexion(jeton); throw new Error('SESSION_EXPIREE'); }
+  const u = utilisateurParEmail_(s.e);
+  if (!u || !estActif_(u)) throw new Error('SESSION_EXPIREE');
+  const p = profil_(u);
+  if (niveau === 'admin' && !p.admin) throw new Error('Action réservée aux administrateurs.');
+  if (niveau === 'superadmin' && !p.superadmin) throw new Error('Action réservée au superadmin.');
+  UTILISATEUR_COURANT_ = p.email;
+  return p;
+}
+
+function apiMoi(jeton) { return auth_(jeton, 'connecte'); }
+
+/* ---------- Gestion des utilisateurs (superadmin) ---------- */
+function apiUtilisateur(jeton, ligne, data) {
+  const moi = auth_(jeton, 'superadmin');
+  const email = normEmail_(data['Email']);
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error('Adresse e-mail invalide.');
+  if (ROLES.indexOf(data['Rôle']) < 0) throw new Error('Rôle invalide.');
+  const tous = lire_(ONGLETS.UTILISATEURS);
+  const doublon = tous.filter(function (u) { return normEmail_(u['Email']) === email && u._row !== Number(ligne); })[0];
+  if (doublon) throw new Error('Cette adresse existe déjà.');
+  const actif = data['Actif'] === true || data['Actif'] === 'Oui';
+  const avant = ligne ? tous.filter(function (u) { return u._row === Number(ligne); })[0] : null;
+  // Toujours au moins un superadmin actif.
+  const supersRestants = tous.filter(function (u) {
+    return u['Rôle'] === 'Superadmin' && estActif_(u) && u._row !== Number(ligne);
+  }).length + (data['Rôle'] === 'Superadmin' && actif ? 1 : 0);
+  if (supersRestants === 0) throw new Error('Il doit rester au moins un superadmin actif.');
+  const estForm = data['Rôle'] === 'Formateur' || data['Est formateur'] === true;
+  let idF = data['ID Formateur'] || (avant ? avant['ID Formateur'] : '');
+  if (idF && !trouver_(ONGLETS.FORMATEURS, 'ID Formateur', idF)) throw new Error('Fiche formateur introuvable.');
+  if (estForm && !idF) idF = lierFormateur_(email, data['Nom']);
+  if (!estForm) idF = avant ? avant['ID Formateur'] : '';
+  const obj = {
+    'Email': email, 'Nom': data['Nom'] || '', 'Rôle': data['Rôle'], 'Est formateur': estForm ? 'Oui' : 'Non',
+    'ID Formateur': idF, 'Actif': actif ? 'Oui' : 'Non'
+  };
+  if (avant) maj_(ONGLETS.UTILISATEURS, avant._row, obj);
+  else { obj['Créé le'] = new Date(); ajouter_(ONGLETS.UTILISATEURS, obj); }
+  journal_('Utilisateur', email + ' : ' + obj['Rôle'] + (estForm ? ' + formateur' : '') + (actif ? '' : ' (inactif)'));
+  return rep_('Utilisateur ' + email + ' enregistré.', moi);
+}
+
+/** Retrouve (par e-mail) ou crée la fiche formateur liée à un utilisateur. */
+function lierFormateur_(email, nom) {
+  const f = lire_(ONGLETS.FORMATEURS).filter(function (x) { return normEmail_(x['Email']) === email; })[0];
+  if (f) return f['ID Formateur'];
+  const id = nouvelId_(ONGLETS.FORMATEURS, 'ID Formateur', 'T');
+  ajouter_(ONGLETS.FORMATEURS, { 'ID Formateur': id, 'Nom': nom || email, 'Email': email, 'Actif': true });
+  return id;
 }
 
 /* ===== WebApp.gs ===== */
 /**
- * MDC ERP — Application web (interface). La Google Sheet sert uniquement de base de données.
- * Déploiement : Apps Script > Déployer > Nouveau déploiement > Application Web.
+ * MDC ERP — Application web. La Google Sheet sert uniquement de base de données.
+ * Chaque fonction api* reçoit le jeton de session en premier argument et contrôle le rôle.
+ * Déploiement : Exécuter en tant que « Moi », accès « Tout le monde » (l'accès réel est contrôlé par l'ERP).
  */
 function doGet() {
-  return HtmlService.createHtmlOutputFromFile('Index')
+  return HtmlService.createTemplateFromFile('Index').evaluate()
     .setTitle('MDC ERP')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
 }
-
-const ONGLETS_WEB_ = ['GROUPES', 'ENTITES', 'CATALOGUE', 'FORMATEURS', 'PROFORMAS', 'FACTURES', 'LIGNES',
-  'PAIEMENTS', 'SESSIONS', 'PARTICIPANTS', 'FMFP', 'EXPORTS', 'PARAMS'];
-
-/** Onglets modifiables depuis l'interface, et colonnes protégées (calculées par l'ERP). */
-const EDITABLES_ = {
-  'Paramètres': { proteges: ['Clé', 'DOSSIER_EXPORT_ID'] },
-  'Catalogue': { proteges: [] },
-  'Formateurs': { proteges: ['ID Formateur'] },
-  'Groupes': { proteges: ['ID Groupe', 'HubSpot ID'] },
-  'Entités': { proteges: ['ID Entité', 'HubSpot ID', 'Source'] },
-  'Sessions': { proteges: ['ID Session', 'ID Entité', 'N° Proforma', 'FMFP', 'Phase actuelle', 'Alerte'] },
-  'Participants': { proteges: [] },
-  'Proformas': { proteges: ['ID', 'N°', 'Statut', 'Date', 'ID Entité', 'Raison sociale', 'Total HT', 'TVA', 'Total TTC', 'ID Session', 'Lien PDF', 'Créée le'] }
-};
 
 function serialiser_(rows) {
   const tz = ss_().getSpreadsheetTimeZone();
@@ -1183,76 +1509,215 @@ function serialiser_(rows) {
   });
 }
 
-/** Charge toute la base (volumes MDC : quelques centaines de lignes). */
-function apiCharger() {
-  const d = {};
-  ONGLETS_WEB_.forEach(function (k) { d[k] = serialiser_(lire_(ONGLETS[k])); });
-  d.PARAMS = d.PARAMS.filter(function (p) { return p['Clé'] !== 'DOSSIER_EXPORT_ID'; });
-  d.constantes = {
+function idsFormateurs_(s) {
+  return String(s['ID Formateurs'] || '').split(',').map(function (x) { return x.trim(); }).filter(String);
+}
+
+function sessionAutorisee_(moi, idSession) {
+  const s = trouver_(ONGLETS.SESSIONS, 'ID Session', idSession);
+  if (!s) throw new Error('Session introuvable.');
+  if (moi.admin) return s;
+  if (moi.formateur && idsFormateurs_(s).indexOf(moi.idFormateur) >= 0) return s;
+  throw new Error('Cette formation ne vous est pas attribuée.');
+}
+
+/** Données visibles selon l'espace (admin / formateur). */
+function apiCharger(jeton, espace) {
+  const moi = auth_(jeton, 'connecte');
+  return charger_(moi, espace);
+}
+
+function charger_(moi, espace) {
+  const tz = ss_().getSpreadsheetTimeZone();
+  const C = {
     PHASES: PHASES, ETAPES_FMFP: ETAPES_FMFP, STATUT_PHASE: STATUT_PHASE, STATUT_PROFORMA: STATUT_PROFORMA,
-    MODES_PAIEMENT: MODES_PAIEMENT, TVA: tauxTva_(), TVA_APPLICABLE: tvaApplicable_(),
-    POURCENT_ACOMPTE: Number(param_('POURCENT_ACOMPTE', 70)), VALIDITE: Number(param_('VALIDITE_PROFORMA_JOURS', 30)),
-    SOCIETE: param_('SOCIETE_NOM_COURT', 'MDC'), HUBSPOT: !!PropertiesService.getScriptProperties().getProperty('HUBSPOT_TOKEN'),
-    DOSSIER_PDF: param_('DOSSIER_EXPORT_ID', '') ? 'https://drive.google.com/drive/folders/' + param_('DOSSIER_EXPORT_ID', '') : '',
-    UTILISATEUR: Session.getActiveUser().getEmail(),
-    AUJOURDHUI: Utilities.formatDate(new Date(), ss_().getSpreadsheetTimeZone(), 'yyyy-MM-dd')
+    MODES_PAIEMENT: MODES_PAIEMENT, ROLES: ROLES, SEUIL: Number(param_('SEUIL_ATTESTATION', 80)),
+    AUJOURDHUI: Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'), SOCIETE: param_('SOCIETE_NOM_COURT', 'MDC')
   };
+  const modeFormateur = espace === 'formateur' || !moi.admin;
+  if (modeFormateur) {
+    if (!moi.formateur) throw new Error('Aucune fiche formateur n\'est liée à votre compte.');
+    const sessions = lire_(ONGLETS.SESSIONS).filter(function (s) { return idsFormateurs_(s).indexOf(moi.idFormateur) >= 0; });
+    const ids = sessions.map(function (s) { return s['ID Session']; });
+    return { moi: moi, espace: 'formateur', constantes: C,
+      SESSIONS: serialiser_(sessions),
+      PARTICIPANTS: serialiser_(lire_(ONGLETS.PARTICIPANTS).filter(function (p) { return ids.indexOf(p['ID Session']) >= 0; })),
+      FORMATEURS: serialiser_(lire_(ONGLETS.FORMATEURS).map(function (f) { return { 'ID Formateur': f['ID Formateur'], 'Nom': f['Nom'] }; })) };
+  }
+  const d = { moi: moi, espace: 'admin', constantes: C };
+  ['GROUPES', 'ENTITES', 'CATALOGUE', 'FORMATEURS', 'PROFORMAS', 'FACTURES', 'LIGNES', 'PAIEMENTS', 'SESSIONS',
+    'PARTICIPANTS', 'FMFP', 'EXPORTS'].forEach(function (k) { d[k] = serialiser_(lire_(ONGLETS[k])); });
+  C.TVA = tauxTva_(); C.TVA_DEFAUT = tvaApplicable_(); C.TAUX_TVA = Number(param_('TAUX_TVA', 0.2)) || 0;
+  C.POURCENT_ACOMPTE = Number(param_('POURCENT_ACOMPTE', 70));
+  C.VALIDITE = Number(param_('VALIDITE_PROFORMA_JOURS', 30));
+  C.HUBSPOT = !!PropertiesService.getScriptProperties().getProperty('HUBSPOT_TOKEN');
+  C.DOSSIER_PDF = param_('DOSSIER_EXPORT_ID', '') ? 'https://drive.google.com/drive/folders/' + param_('DOSSIER_EXPORT_ID', '') : '';
+  C.DOC = contexteSociete_();
+  if (moi.superadmin) {
+    d.UTILISATEURS = serialiser_(lire_(ONGLETS.UTILISATEURS));
+    d.PARAMS = serialiser_(lire_(ONGLETS.PARAMS));
+    d.COMPTEURS = serialiser_(lire_(ONGLETS.COMPTEURS));
+    C.SCHEMA = PARAMS_SCHEMA;
+  }
   return d;
 }
 
-function rep_(message, extra) {
-  const r = { message: message, data: apiCharger() };
+function rep_(message, moi, extra) {
+  const r = { message: message, data: charger_(moi, 'admin') };
   Object.keys(extra || {}).forEach(function (k) { r[k] = extra[k]; });
   return r;
 }
 
-/* ---------- Documents ---------- */
-function apiCreerProforma(data) { const r = creerProforma(data); return rep_(r.message, { id: r.id, url: r.url }); }
-function apiEmettre(idProforma) { const r = emettreProforma_(idProforma); return rep_(r.message, { url: r.url }); }
-function apiFacturer(idProforma, type) {
+/* ---------- Documents (admin) ---------- */
+function apiCreerProforma(jeton, data) {
+  const moi = auth_(jeton, 'admin');
+  const r = creerProforma(data);
+  return rep_(r.message, moi, { id: r.id, url: r.url });
+}
+function apiMajBrouillon(jeton, id, data) {
+  const moi = auth_(jeton, 'admin');
+  const r = majBrouillon_(id, data);
+  return rep_(r.message, moi, { id: id, url: r.url });
+}
+function apiEmettre(jeton, idProforma) {
+  const moi = auth_(jeton, 'admin');
+  const r = emettreProforma_(idProforma);
+  return rep_(r.message, moi, { url: r.url });
+}
+function apiFacturer(jeton, idProforma, type) {
+  const moi = auth_(jeton, 'admin');
   if (!TYPES_FACTURE[type]) throw new Error('Type de facture inconnu.');
   const r = creerFactureDepuisProforma_(idProforma, type);
-  return rep_(r.message, { url: r.url });
+  return rep_(r.message, moi, { url: r.url });
 }
-function apiStatutProforma(idProforma, statut) {
-  if (['Acceptée', 'Refusée'].indexOf(statut) < 0) throw new Error('Statut non autorisé.');
+function apiStatutProforma(jeton, idProforma, statut) {
+  const moi = auth_(jeton, 'admin');
+  if (['Acceptée', 'Refusée', 'Émise'].indexOf(statut) < 0) throw new Error('Statut non autorisé.');
   const p = trouver_(ONGLETS.PROFORMAS, 'ID', idProforma);
   if (!p || !p['N°']) throw new Error('Proforma non émise.');
   maj_(ONGLETS.PROFORMAS, p._row, { 'Statut': statut });
   journal_('Statut proforma', p['N°'] + ' → ' + statut);
-  return rep_('Proforma ' + p['N°'] + ' : ' + statut + '.');
+  return rep_('Proforma ' + p['N°'] + ' : ' + statut + '.', moi);
 }
-function apiAnnuler(type, id) {
+function apiAnnuler(jeton, type, id) {
+  const moi = auth_(jeton, 'admin');
   const onglet = type === 'PF' ? ONGLETS.PROFORMAS : ONGLETS.FACTURES;
   const o = trouver_(onglet, 'ID', id);
   if (!o) throw new Error('Document introuvable.');
   maj_(onglet, o._row, type === 'PF' ? { 'Statut': 'Annulée' } : { 'Statut': 'Annulée', 'Reste à payer': 0, 'Statut paiement': 'Annulée' });
   journal_('Annulation', o['N°'] || o['ID']);
-  return rep_((o['N°'] || o['ID']) + ' annulé(e). Le numéro ne sera jamais réutilisé.');
+  return rep_((o['N°'] || o['ID']) + ' annulé(e). Le numéro ne sera jamais réutilisé.', moi);
 }
-function apiRegenererPdf(type, id) {
+function apiRegenererPdf(jeton, type, id) {
+  const moi = auth_(jeton, 'admin');
   const onglet = type === 'PF' ? ONGLETS.PROFORMAS : ONGLETS.FACTURES;
   const o = trouver_(onglet, 'ID', id);
   if (!o || !o['N°']) throw new Error('Document non émis.');
-  if (type === 'DE') o._totalProformaHT = lignesDe_(id).reduce(function (a, l) { return a + Number(l['Montant HT'] || 0); }, 0);
   const url = genererPdf_(type, o);
   maj_(onglet, o._row, { 'Lien PDF': url });
-  return rep_('PDF régénéré (même numéro).', { url: url });
+  return rep_('PDF régénéré (même numéro).', moi, { url: url });
 }
-function apiPaiement(numFacture, montant, mode, reference, date) {
+function apiPaiement(jeton, numFacture, montant, mode, reference, date) {
+  const moi = auth_(jeton, 'admin');
   paiementCore_(numFacture, montant, mode, reference, date);
-  return rep_('Paiement enregistré sur ' + numFacture + '.');
+  return rep_('Paiement enregistré sur ' + numFacture + '.', moi);
 }
 
 /* ---------- Formations ---------- */
-function apiCreerSession(idProforma, fmfp) {
+function apiCreerSession(jeton, idProforma, fmfp) {
+  const moi = auth_(jeton, 'admin');
   const id = creerSessionCore_(idProforma, fmfp);
-  return rep_('Session ' + id + ' créée' + (fmfp ? ' avec dossier FMFP.' : '.'), { id: id });
+  controlerPhases();
+  return rep_('Session ' + id + ' créée' + (fmfp ? ' avec dossier FMFP.' : '.'), moi, { id: id });
 }
-function apiControlerPhases() { controlerPhases(); return rep_('Contrôle des 6 phases effectué.'); }
-function apiAttestations() { calculerAttestations(); controlerPhases(); return rep_('Attestations calculées (présence ≥ 80 %).'); }
 
-function apiMajFmfp(ligne, champs) {
+/** Informations de session et affectation des formateurs (admin). */
+function apiSessionInfos(jeton, idSession, champs, idsForm) {
+  const moi = auth_(jeton, 'admin');
+  const s = sessionAutorisee_(moi, idSession);
+  const autorises = ['Intitulé', 'Date début', 'Date fin', 'Lieu', 'Nb participants', 'Lien dossier', 'Notes'];
+  const m = {};
+  autorises.forEach(function (k) {
+    if (champs[k] === undefined) return;
+    let v = champs[k];
+    if (/^Date/.test(k)) v = v ? new Date(v + 'T00:00:00') : '';
+    m[k] = v;
+  });
+  if (idsForm) {
+    const forms = lire_(ONGLETS.FORMATEURS);
+    const ok = idsForm.filter(function (id) { return forms.some(function (f) { return f['ID Formateur'] === id; }); });
+    m['ID Formateurs'] = ok.join(', ');
+    m['Formateur(s)'] = ok.map(function (id) { return forms.filter(function (f) { return f['ID Formateur'] === id; })[0]['Nom']; }).join(', ');
+  }
+  maj_(ONGLETS.SESSIONS, s._row, m);
+  controlerPhases(); actualiserExports();
+  journal_('Session', idSession + ' : informations');
+  return { message: 'Session enregistrée.', data: charger_(moi, 'admin') };
+}
+
+/** Phases : l'admin gère les 6 phases, le formateur affecté les phases P2 à P6. */
+function apiSessionPhases(jeton, espace, idSession, phases) {
+  const moi = auth_(jeton, 'connecte');
+  const s = sessionAutorisee_(moi, idSession);
+  const modeAdmin = moi.admin && espace !== 'formateur';
+  const m = {};
+  PHASES.forEach(function (ph, i) {
+    if (phases[ph] === undefined) return;
+    if (STATUT_PHASE.indexOf(phases[ph]) < 0) throw new Error('Statut de phase invalide.');
+    if (i === 0 && !modeAdmin) return;
+    m[ph] = phases[ph];
+  });
+  maj_(ONGLETS.SESSIONS, s._row, m);
+  controlerPhases();
+  journal_('Phases', idSession);
+  return { message: 'Phases enregistrées.', data: charger_(moi, modeAdmin ? 'admin' : 'formateur') };
+}
+
+function apiParticipant(jeton, espace, ligne, champs) {
+  const moi = auth_(jeton, 'connecte');
+  const autorises = ['Nom', 'Fonction', 'Email', 'Niveau test (P2)', 'Niveau validé (P3)', 'Présence (%)', 'Note évaluation (P5)', 'Attestation'];
+  const m = {};
+  autorises.forEach(function (k) { if (champs[k] !== undefined) m[k] = champs[k]; });
+  if (ligne) {
+    const p = lire_(ONGLETS.PARTICIPANTS).filter(function (x) { return x._row === Number(ligne); })[0];
+    if (!p) throw new Error('Participant introuvable.');
+    sessionAutorisee_(moi, p['ID Session']);
+    maj_(ONGLETS.PARTICIPANTS, p._row, m);
+  } else {
+    sessionAutorisee_(moi, champs['ID Session']);
+    if (!m['Nom']) throw new Error('Nom obligatoire.');
+    m['ID Session'] = champs['ID Session'];
+    ajouter_(ONGLETS.PARTICIPANTS, m);
+  }
+  controlerPhases();
+  return { message: 'Participant enregistré.', data: charger_(moi, moi.admin && espace !== 'formateur' ? 'admin' : 'formateur') };
+}
+
+function apiSupprimerParticipant(jeton, espace, ligne) {
+  const moi = auth_(jeton, 'connecte');
+  const p = lire_(ONGLETS.PARTICIPANTS).filter(function (x) { return x._row === Number(ligne); })[0];
+  if (!p) throw new Error('Participant introuvable.');
+  sessionAutorisee_(moi, p['ID Session']);
+  sh_(ONGLETS.PARTICIPANTS).deleteRow(p._row);
+  journal_('Participant supprimé', p['ID Session'] + ' : ' + p['Nom']);
+  return { message: 'Participant supprimé.', data: charger_(moi, moi.admin && espace !== 'formateur' ? 'admin' : 'formateur') };
+}
+
+function apiAttestations(jeton, espace, idSession) {
+  const moi = auth_(jeton, 'connecte');
+  sessionAutorisee_(moi, idSession);
+  const seuil = Number(param_('SEUIL_ATTESTATION', 80));
+  lire_(ONGLETS.PARTICIPANTS).filter(function (p) { return p['ID Session'] === idSession && p['Présence (%)'] !== ''; }).forEach(function (p) {
+    const v = Number(String(p['Présence (%)']).replace('%', '').replace(',', '.'));
+    const pres = v <= 1 ? v * 100 : v;
+    maj_(ONGLETS.PARTICIPANTS, p._row, { 'Attestation': pres >= seuil ? 'Oui' : 'Non (présence < ' + seuil + ' %)' });
+  });
+  controlerPhases();
+  return { message: 'Attestations calculées (présence ≥ ' + seuil + ' %).', data: charger_(moi, moi.admin && espace !== 'formateur' ? 'admin' : 'formateur') };
+}
+
+function apiMajFmfp(jeton, ligne, champs) {
+  const moi = auth_(jeton, 'admin');
   const d = lire_(ONGLETS.FMFP).filter(function (x) { return x._row === Number(ligne); })[0];
   if (!d) throw new Error('Dossier FMFP introuvable.');
   const autorises = ['Étape', 'CV formateurs envoyés', 'Rapports envoyés', 'Fiches de présence envoyées', 'Commentaire', 'Prochaine relance'];
@@ -1265,70 +1730,150 @@ function apiMajFmfp(ligne, champs) {
     m['Prochaine relance'] = /Clôturé/.test(m['Étape']) ? '' : new Date(now.getTime() + Number(param_('DELAI_RELANCE_FMFP_JOURS', 7)) * 86400000);
     m['Relance HubSpot créée'] = false;
   } else if (m['Prochaine relance']) {
-    m['Prochaine relance'] = new Date(m['Prochaine relance']);
-  }
+    m['Prochaine relance'] = new Date(m['Prochaine relance'] + 'T00:00:00');
+  } else delete m['Prochaine relance'];
   maj_(ONGLETS.FMFP, d._row, m);
   journal_('FMFP', d['ID Session'] + ' : ' + (m['Étape'] || 'mise à jour'));
-  return rep_('Dossier FMFP ' + d['ID Session'] + ' mis à jour.');
+  return rep_('Dossier FMFP ' + d['ID Session'] + ' mis à jour.', moi);
 }
 
-/* ---------- Édition générique ---------- */
-function apiEnregistrer(nomOnglet, ligne, champs) {
+/* ---------- Référentiels (admin) ---------- */
+const EDITABLES_ = {
+  'Catalogue': { proteges: [] },
+  'Formateurs': { proteges: ['ID Formateur'] },
+  'Groupes': { proteges: ['ID Groupe', 'HubSpot ID'] },
+  'Entités': { proteges: ['ID Entité', 'HubSpot ID', 'Source'] }
+};
+
+function apiEnregistrer(jeton, nomOnglet, ligne, champs) {
+  const moi = auth_(jeton, 'admin');
   const regle = EDITABLES_[nomOnglet];
-  if (!regle) throw new Error('Onglet non modifiable depuis l\'interface.');
-  const s = sh_(nomOnglet);
-  const h = entetes_(s);
+  if (!regle) throw new Error('Données non modifiables depuis cet écran.');
+  const h = entetes_(sh_(nomOnglet));
   const m = {};
   Object.keys(champs).forEach(function (k) {
     if (h.indexOf(k) < 0 || regle.proteges.indexOf(k) >= 0) return;
-    let v = champs[k];
-    if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) v = new Date(v + 'T00:00:00');
-    m[k] = v;
+    m[k] = champs[k];
   });
-  if (nomOnglet === ONGLETS.PARAMS) {
-    const p = lire_(nomOnglet).filter(function (x) { return x._row === Number(ligne); })[0];
-    if (p && regle.proteges.indexOf(p['Clé']) >= 0) throw new Error('Paramètre protégé.');
-  }
-  if (nomOnglet === ONGLETS.PROFORMAS) {
-    const p = lire_(nomOnglet).filter(function (x) { return x._row === Number(ligne); })[0];
-    if (p && p['N°']) throw new Error('Proforma émise : non modifiable (annulez et recréez).');
-  }
   if (ligne) {
     maj_(nomOnglet, Number(ligne), m);
   } else {
     const prefixes = { 'Entités': ['ID Entité', 'E'], 'Groupes': ['ID Groupe', 'G'], 'Formateurs': ['ID Formateur', 'T'] };
     if (prefixes[nomOnglet]) m[prefixes[nomOnglet][0]] = nouvelId_(nomOnglet, prefixes[nomOnglet][0], prefixes[nomOnglet][1]);
-    if (nomOnglet === ONGLETS.ENTITES) { m['Source'] = 'Saisie ERP'; m['Mis à jour le'] = new Date(); }
-    if (nomOnglet === ONGLETS.CATALOGUE && !m['Code']) throw new Error('Code obligatoire.');
+    if (nomOnglet === ONGLETS.ENTITES) { m['Source'] = 'Saisie ERP'; }
+    if (nomOnglet === ONGLETS.CATALOGUE) {
+      if (!m['Code']) throw new Error('Code obligatoire.');
+      if (trouver_(ONGLETS.CATALOGUE, 'Code', m['Code'])) throw new Error('Ce code existe déjà.');
+    }
     ajouter_(nomOnglet, m);
   }
-  if (nomOnglet === ONGLETS.SESSIONS || nomOnglet === ONGLETS.PARTICIPANTS) controlerPhases();
-  if (nomOnglet === ONGLETS.SESSIONS) actualiserExports();
+  if (nomOnglet === ONGLETS.ENTITES) {
+    const e = ligne ? lire_(nomOnglet).filter(function (x) { return x._row === Number(ligne); })[0] : null;
+    if (e) maj_(nomOnglet, e._row, { 'Mis à jour le': new Date() });
+  }
   journal_('Modification', nomOnglet + (ligne ? ' ligne ' + ligne : ' (ajout)'));
-  return rep_('Enregistré.');
+  return rep_('Enregistré.', moi);
 }
 
-function apiSupprimerParticipant(ligne) {
-  const p = lire_(ONGLETS.PARTICIPANTS).filter(function (x) { return x._row === Number(ligne); })[0];
-  if (!p) throw new Error('Participant introuvable.');
-  sh_(ONGLETS.PARTICIPANTS).deleteRow(p._row);
-  journal_('Participant supprimé', p['ID Session'] + ' : ' + p['Nom']);
-  return rep_('Participant supprimé.');
+/* ---------- Paramètres (superadmin) ---------- */
+function apiParametres(jeton, valeurs) {
+  const moi = auth_(jeton, 'superadmin');
+  const schema = {};
+  PARAMS_SCHEMA.forEach(function (p) { schema[p[0]] = p; });
+  const lignes = lire_(ONGLETS.PARAMS);
+  Object.keys(valeurs).forEach(function (cle) {
+    if (!/^[A-Z0-9_]{2,60}$/.test(cle)) throw new Error('Clé invalide : ' + cle);
+    if (schema[cle] && schema[cle][4] === 'readonly') return;
+    let v = valeurs[cle];
+    if (schema[cle] && (schema[cle][4] === 'number' || schema[cle][4] === 'percent')) {
+      v = Number(String(v).replace(',', '.'));
+      if (isNaN(v)) throw new Error('Valeur numérique attendue : ' + schema[cle][2]);
+    }
+    if (schema[cle] && schema[cle][4] === 'toggle') v = v === true || v === 'Oui' ? 'Oui' : 'Non';
+    const l = lignes.filter(function (x) { return x['Clé'] === cle; })[0];
+    if (l) maj_(ONGLETS.PARAMS, l._row, { 'Valeur': v });
+    else ajouter_(ONGLETS.PARAMS, { 'Clé': cle, 'Valeur': v, 'Description': schema[cle] ? schema[cle][2] : 'Paramètre personnalisé' });
+  });
+  CACHE_PARAMS_ = null;
+  journal_('Paramètres', Object.keys(valeurs).join(', '));
+  return rep_('Paramètres enregistrés.', moi);
+}
+
+/** Téléversement du logo ou de la signature (base64) dans le dossier Drive de l'ERP. */
+function apiTeleverserImage(jeton, cle, base64, mime, nom) {
+  const moi = auth_(jeton, 'superadmin');
+  if (['LOGO_FILE_ID', 'SIGNATURE_FILE_ID'].indexOf(cle) < 0) throw new Error('Paramètre image inconnu.');
+  if (!/^image\/(png|jpeg)$/.test(mime)) throw new Error('Format accepté : PNG ou JPG.');
+  const octets = Utilities.base64Decode(base64);
+  if (octets.length > 2 * 1024 * 1024) throw new Error('Image trop lourde (2 Mo maximum).');
+  const racine = DriveApp.getFolderById(param_('DOSSIER_EXPORT_ID'));
+  const it = racine.getFoldersByName('Ressources');
+  const dossier = it.hasNext() ? it.next() : racine.createFolder('Ressources');
+  const f = dossier.createFile(Utilities.newBlob(octets, mime, nom || cle));
+  const ancien = param_(cle, '');
+  if (ancien) { try { DriveApp.getFileById(ancien).setTrashed(true); } catch (e) { /* ancien fichier absent */ } }
+  setParam_(cle, f.getId());
+  return rep_('Image enregistrée.', moi);
+}
+
+function apiSupprimerImage(jeton, cle) {
+  const moi = auth_(jeton, 'superadmin');
+  if (['LOGO_FILE_ID', 'SIGNATURE_FILE_ID'].indexOf(cle) < 0) throw new Error('Paramètre image inconnu.');
+  setParam_(cle, '');
+  return rep_('Image retirée.', moi);
+}
+
+/** Ajustement d'un compteur : uniquement vers le haut (jamais de numéro réutilisé). */
+function apiCompteur(jeton, annee, type, valeur) {
+  const moi = auth_(jeton, 'superadmin');
+  valeur = Number(valeur);
+  if (['PF', 'DE'].indexOf(type) < 0 || !(valeur >= 0)) throw new Error('Valeur invalide.');
+  const c = lire_(ONGLETS.COMPTEURS).filter(function (x) { return Number(x['Année']) === Number(annee) && x['Type'] === type; })[0];
+  if (c && valeur < Number(c['Dernier numéro'])) throw new Error('Un compteur ne peut pas redescendre (risque de doublon).');
+  if (c) maj_(ONGLETS.COMPTEURS, c._row, { 'Dernier numéro': valeur, 'Mis à jour le': new Date() });
+  else ajouter_(ONGLETS.COMPTEURS, { 'Année': Number(annee), 'Type': type, 'Dernier numéro': valeur, 'Mis à jour le': new Date() });
+  journal_('Compteur', type + ' ' + annee + ' → ' + valeur);
+  return rep_('Compteur ' + type + ' ' + annee + ' : prochain numéro ' + String(valeur + 1).padStart(5, '0') + '.', moi);
 }
 
 /* ---------- HubSpot ---------- */
-function apiCleHubSpot(jeton) {
-  jeton = String(jeton || '').trim();
-  if (!/^pat-/.test(jeton)) throw new Error('Le jeton doit commencer par « pat- ».');
-  PropertiesService.getScriptProperties().setProperty('HUBSPOT_TOKEN', jeton);
-  return rep_('Clé HubSpot enregistrée.');
+function apiCleHubSpot(jeton, cle) {
+  const moi = auth_(jeton, 'superadmin');
+  cle = String(cle || '').trim();
+  if (!/^pat-/.test(cle)) throw new Error('Le jeton doit commencer par « pat- ».');
+  PropertiesService.getScriptProperties().setProperty('HUBSPOT_TOKEN', cle);
+  return rep_('Clé HubSpot enregistrée.', moi);
 }
-function apiSyncHubSpot() {
+function apiSyncHubSpot(jeton) {
+  const moi = auth_(jeton, 'admin');
   const n = synchroniserEntreprisesCore_();
-  return rep_(n.crees + ' entité(s) créée(s), ' + n.majs + ' mise(s) à jour, ' + n.groupes + ' groupe(s).');
+  return rep_(n.crees + ' entité(s) créée(s), ' + n.majs + ' mise(s) à jour, ' + n.groupes + ' groupe(s).', moi);
 }
-function apiImportHubSpot() {
+function apiImportHubSpot(jeton) {
+  const moi = auth_(jeton, 'admin');
   const n = importerDepuisOngletCore_();
-  return rep_(n.crees + ' entité(s) créée(s), ' + n.majs + ' mise(s) à jour.');
+  return rep_(n.crees + ' entité(s) créée(s), ' + n.majs + ' mise(s) à jour.', moi);
 }
-function apiRelancesHubSpot() { return rep_(creerRelancesHubSpotCore_() + ' tâche(s) de relance créée(s) dans HubSpot.'); }
+function apiRelancesHubSpot(jeton) {
+  const moi = auth_(jeton, 'admin');
+  return rep_(creerRelancesHubSpotCore_() + ' tâche(s) de relance créée(s) dans HubSpot.', moi);
+}
+
+/* ===== Menu.gs ===== */
+/** MDC ERP — Menu de la feuille (maintenance). L'utilisation se fait dans l'application web. */
+function onOpen() {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu('MDC ERP')
+    .addItem('Ouvrir l\'application', 'ouvrirApplication')
+    .addSeparator()
+    .addItem('Recalculer paiements, phases et exports', 'actualiserTableauDeBord')
+    .addItem('Initialiser / mettre à jour la structure', 'initialiserStructure')
+    .addToUi();
+}
+
+function ouvrirApplication() {
+  const url = ScriptApp.getService().getUrl();
+  if (!url) return alerte_('Déployez d\'abord l\'application web (Déployer > Nouveau déploiement > Application Web).');
+  const html = HtmlService.createHtmlOutput('<p style="font-family:Arial">Ouvrir : <a href="' + url + '" target="_blank">' + url + '</a></p>').setWidth(520).setHeight(90);
+  SpreadsheetApp.getUi().showModalDialog(html, 'MDC ERP');
+}

@@ -57,6 +57,7 @@ function lierFactureFmfp_(numProforma, type, numFacture) {
  */
 function controlerPhases() {
   const participants = lire_(ONGLETS.PARTICIPANTS);
+  const seuil = Number(param_('SEUIL_ATTESTATION', 80));
   lire_(ONGLETS.SESSIONS).forEach(function (s) {
     const alertes = [];
     let actuelle = 'Terminée';
@@ -79,7 +80,7 @@ function controlerPhases() {
     }
     ps.forEach(function (p) {
       const pres = Number(String(p['Présence (%)']).replace('%', ''));
-      if (p['Attestation'] === 'Oui' && pres && pres < 80) alertes.push(p['Nom'] + ' : attestation avec présence < 80 %');
+      if (p['Attestation'] === 'Oui' && pres && pres < seuil) alertes.push(p['Nom'] + ' : attestation avec présence < ' + seuil + ' %');
     });
     maj_(ONGLETS.SESSIONS, s._row, { 'Phase actuelle': actuelle, 'Alerte': alertes.join(' · ') });
   });
@@ -91,7 +92,8 @@ function calculerAttestations() {
     if (p['Attestation'] || p['Présence (%)'] === '') return;
     const v = Number(String(p['Présence (%)']).replace('%', ''));
     const pres = v <= 1 ? v * 100 : v; // accepte 0,85 ou 85
-    maj_(ONGLETS.PARTICIPANTS, p._row, { 'Attestation': pres >= 80 ? 'Oui' : 'Non (présence < 80 %)' });
+    const seuil = Number(param_('SEUIL_ATTESTATION', 80));
+    maj_(ONGLETS.PARTICIPANTS, p._row, { 'Attestation': pres >= seuil ? 'Oui' : 'Non (présence < ' + seuil + ' %)' });
   });
 }
 

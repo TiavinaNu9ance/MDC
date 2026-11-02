@@ -18,6 +18,7 @@ const ONGLETS = {
   DASHBOARD: 'Tableau de bord',
   EXPORTS: 'Exports',
   IMPORT: 'Import HubSpot',
+  UTILISATEURS: 'Utilisateurs',
   JOURNAL: 'Journal'
 };
 
@@ -30,14 +31,14 @@ const COLONNES = {
   'Catalogue': ['Code', 'Domaine', 'Désignation', 'Niveau', 'Durée (h)', 'Prix unitaire HT', 'Unité', 'Actif'],
   'Formateurs': ['ID Formateur', 'Nom', 'Email', 'Téléphone', 'Domaines', 'Lien CV (FMFP)', 'Tarif journalier', 'Actif'],
   'Proformas': ['ID', 'N°', 'Date', 'Validité (jours)', 'ID Entité', 'Raison sociale', 'Contact client', 'Objet',
-    'Lieu', 'Total HT', 'TVA', 'Total TTC', 'Statut', 'ID Session', 'Lien PDF', 'Créée le'],
+    'Lieu', 'Total HT', 'Taux TVA', 'TVA', 'Total TTC', 'Statut', 'ID Session', 'Lien PDF', 'Créée le'],
   'Factures': ['ID', 'N°', 'Date', 'Type', '%', 'N° Proforma', 'ID Entité', 'Raison sociale', 'Contact client',
-    'Total HT', 'TVA', 'Total TTC', 'Compte dans encaissements', 'Montant payé', 'Reste à payer',
+    'Total HT', 'Taux TVA', 'TVA', 'Total TTC', 'Compte dans encaissements', 'Montant payé', 'Reste à payer',
     'Statut paiement', 'Date dernier paiement', 'Statut', 'Lien PDF', 'Créée le'],
   'Lignes': ['ID Document', 'Ordre', 'Code', 'Domaine', 'Désignation', 'Lieu', 'Durée', 'Quantité',
     'Prix unitaire HT', 'Montant HT'],
   'Paiements': ['Date', 'N° Facture', 'Montant', 'Mode', 'Référence', 'Saisi le'],
-  'Sessions': ['ID Session', 'ID Entité', 'Raison sociale', 'Intitulé', 'Formateur(s)', 'Date début', 'Date fin',
+  'Sessions': ['ID Session', 'ID Entité', 'Raison sociale', 'Intitulé', 'Formateur(s)', 'ID Formateurs', 'Date début', 'Date fin',
     'Lieu', 'Nb participants', 'N° Proforma', 'FMFP',
     'P1 Analyse des besoins', 'P2 Test de niveau', 'P3 Validation des niveaux',
     'P4 Suivi pendant la formation', 'P5 Évaluation finale', 'P6 Clôture et compte rendu',
@@ -51,8 +52,11 @@ const COLONNES = {
   'Exports': ['N°', 'Date', 'Type', 'N° Proforma', 'ID Entité', 'Raison sociale', 'ID Session',
     'Dossier session (PC)', 'Dossier cible (PC)', 'Nom du fichier', 'Lien Drive', 'Classé sur le PC', 'Exporté le'],
   'Import HubSpot': ['Record ID', 'Company name', 'Parent company ID', 'Street address', 'City', 'Phone number', 'Email'],
+  'Utilisateurs': ['Email', 'Nom', 'Rôle', 'Est formateur', 'ID Formateur', 'Actif', 'Dernière connexion', 'Créé le'],
   'Journal': ['Horodatage', 'Action', 'Détail', 'Utilisateur']
 };
+
+const ROLES = ['Formateur', 'Administrateur', 'Superadmin'];
 
 const STATUT_PHASE = ['À faire', 'En cours', 'Fait', 'N.A.'];
 const STATUT_PROFORMA = ['Brouillon', 'Émise', 'Acceptée', 'Refusée', 'Annulée'];
@@ -79,33 +83,41 @@ const ETAPES_FMFP = [
   '8. Clôturé'
 ];
 
-const PARAMS_DEFAUT = [
-  ['SOCIETE_NOM', 'MADAGASCAR DATA CAMP SARLU', 'Raison sociale'],
-  ['SOCIETE_NOM_COURT', 'Madagascar Data Camp', ''],
-  ['SOCIETE_ADRESSE', 'Lot II L 4 DE Ankadivato, Antananarivo 101, Madagascar', ''],
-  ['SOCIETE_EMAIL', 'contact@datacamp.business', ''],
-  ['SOCIETE_TEL', '038 59 637 90', ''],
-  ['SOCIETE_NIF', '4012353768', ''],
-  ['SOCIETE_STAT', '70202 11 2022 0 11337', ''],
-  ['SOCIETE_RCS', '2022B01295', ''],
-  ['MENTION_FISCALE_SUP', '', 'Mention fiscale supplémentaire en pied de page (à valider avec le comptable)'],
-  ['TVA_APPLICABLE', 'Oui', 'Oui / Non. Assujettissement à faire confirmer (récépissé 2025 = impôt synthétique, aucune pièce TVA trouvée).'],
-  ['TAUX_TVA', 0.2, 'Taux de TVA si applicable (20 % = 0.2). À CONFIRMER avec le comptable.'],
-  ['DEVISE', 'Ar', ''],
-  ['POURCENT_ACOMPTE', 70, 'Pourcentage par défaut de la facture d\'acompte'],
-  ['CONDITIONS_PAIEMENT', 'Au comptant — 70 % avant la date de la formation / 30 % après la date de fin de la formation', ''],
-  ['RIB', 'Banque BMOI Tsaralalana Antananarivo 101 Madagascar — Compte N° 00004 00002 04813420101 10 — Titulaire : Madagascar Data Camp', ''],
-  ['MVOLA', '038 59 637 90', 'Affiché seulement pour les particuliers'],
-  ['VALIDITE_PROFORMA_JOURS', 30, 'Validité par défaut d\'une proforma'],
-  ['DELAI_RELANCE_FMFP_JOURS', 7, 'Jours entre une étape FMFP et la relance'],
-  ['LOGO_FILE_ID', '', 'ID Google Drive du logo MDC (PNG/JPG)'],
-  ['SIGNATURE_FILE_ID', '', 'ID Google Drive de l\'image tampon + signature (optionnel)'],
-  ['DOSSIER_EXPORT_ID', '', 'Rempli par l\'initialisation : dossier Drive des PDF'],
-  ['COMPTEUR_DEPART_DE_2026', 70, 'Dernier n° de facture déjà utilisé en 2026 (ancienne série). Prochaine = +1'],
-  ['COMPTEUR_DEPART_PF_2026', 72, 'Dernier n° de proforma utilisé en 2026 (2605-F-PF-00072 HELIOS). Prochaine = +1'],
-  ['COULEUR_PRINCIPALE', '#1B2B5E', ''],
-  ['COULEUR_ACCENT', '#C89B2A', '']
+/**
+ * Paramètres : [clé, valeur par défaut, libellé, groupe, type, aide].
+ * Types : text, textarea, number, percent (stocké 0.2 = 20 %), toggle (Oui/Non), color, image (ID Drive), readonly.
+ */
+const PARAMS_SCHEMA = [
+  ['SOCIETE_NOM', 'MADAGASCAR DATA CAMP SARLU', 'Raison sociale', 'Société', 'text', ''],
+  ['SOCIETE_NOM_COURT', 'Madagascar Data Camp', 'Nom commercial', 'Société', 'text', ''],
+  ['SOCIETE_ADRESSE', 'Lot II L 4 DE Ankadivato, Antananarivo 101, Madagascar', 'Adresse', 'Société', 'textarea', ''],
+  ['SOCIETE_EMAIL', 'contact@datacamp.business', 'E-mail', 'Société', 'text', ''],
+  ['SOCIETE_TEL', '038 59 637 90', 'Téléphone', 'Société', 'text', ''],
+  ['SOCIETE_NIF', '4012353768', 'NIF', 'Société', 'text', ''],
+  ['SOCIETE_STAT', '70202 11 2022 0 11337', 'STAT', 'Société', 'text', ''],
+  ['SOCIETE_RCS', '2022B01295', 'RCS', 'Société', 'text', ''],
+  ['TVA_APPLICABLE', 'Oui', 'TVA activée par défaut', 'Facturation', 'toggle', 'Valeur proposée sur chaque nouvelle proforma (modifiable document par document).'],
+  ['TAUX_TVA', 0.2, 'Taux de TVA', 'Facturation', 'percent', ''],
+  ['DEVISE', 'Ar', 'Devise', 'Facturation', 'text', ''],
+  ['POURCENT_ACOMPTE', 70, 'Acompte (%)', 'Facturation', 'number', 'Pourcentage de la facture d\'acompte.'],
+  ['VALIDITE_PROFORMA_JOURS', 30, 'Validité des proformas (jours)', 'Facturation', 'number', ''],
+  ['CONDITIONS_PAIEMENT', 'Au comptant — 70 % avant la date de la formation / 30 % après la date de fin de la formation', 'Conditions de paiement', 'Facturation', 'textarea', ''],
+  ['RIB', 'Banque BMOI Tsaralalana Antananarivo 101 Madagascar — Compte N° 00004 00002 04813420101 10 — Titulaire : Madagascar Data Camp', 'Coordonnées bancaires', 'Facturation', 'textarea', ''],
+  ['MVOLA', '038 59 637 90', 'Numéro MVola', 'Facturation', 'text', 'Affiché pour les clients sans NIF ni STAT (particuliers).'],
+  ['MENTION_FISCALE_SUP', '', 'Mention fiscale (pied de page)', 'Facturation', 'text', 'Ex. n° d\'assujetti TVA.'],
+  ['COMPTEUR_DEPART_DE_2026', 70, 'Départ compteur factures 2026', 'Numérotation', 'number', 'Utilisé seulement avant la première facture 2026 émise par l\'ERP.'],
+  ['COMPTEUR_DEPART_PF_2026', 72, 'Départ compteur proformas 2026', 'Numérotation', 'number', 'Utilisé seulement avant la première proforma 2026 émise par l\'ERP.'],
+  ['DELAI_RELANCE_FMFP_JOURS', 7, 'Délai de relance FMFP (jours)', 'Formation', 'number', ''],
+  ['SEUIL_ATTESTATION', 80, 'Présence minimale pour l\'attestation (%)', 'Formation', 'number', ''],
+  ['LOGO_FILE_ID', '', 'Logo (documents)', 'Apparence', 'image', 'PNG ou JPG.'],
+  ['SIGNATURE_FILE_ID', '', 'Tampon et signature', 'Apparence', 'image', 'Optionnel, ajouté en bas des documents.'],
+  ['COULEUR_PRINCIPALE', '#1B2B5E', 'Couleur principale (documents)', 'Apparence', 'color', ''],
+  ['COULEUR_ACCENT', '#C89B2A', 'Couleur d\'accent (documents)', 'Apparence', 'color', ''],
+  ['SESSION_DUREE_JOURS', 7, 'Durée de connexion (jours)', 'Sécurité', 'number', 'Au-delà, un nouveau code est demandé.'],
+  ['EXPEDITEUR_NOM', 'MDC ERP', 'Nom d\'expéditeur des e-mails', 'Sécurité', 'text', ''],
+  ['DOSSIER_EXPORT_ID', '', 'Dossier Drive des PDF', 'Système', 'readonly', 'Créé à l\'initialisation.']
 ];
+const PARAMS_DEFAUT = PARAMS_SCHEMA.map(function (p) { return [p[0], p[1], p[2] + (p[5] ? ' — ' + p[5] : '')]; });
 
 const CATALOGUE_DEFAUT = [
   // Code, Domaine, Désignation, Niveau, Durée, Prix, Unité

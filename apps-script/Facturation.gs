@@ -23,18 +23,54 @@ function creerProforma(data) {
   const ent = trouver_(ONGLETS.ENTITES, 'ID Entité', data.idEntite);
   if (!ent) throw new Error('Entité introuvable : ' + data.idEntite);
   const id = nouvelId_(ONGLETS.PROFORMAS, 'ID', 'P');
+  const taux = tauxSaisi_(data);
   const totalHT = ecrireLignes_(id, data.lignes, data.lieu);
-  const t = totaux_(totalHT);
+  const t = totaux_(totalHT, taux);
   ajouter_(ONGLETS.PROFORMAS, {
     'ID': id, 'N°': '', 'Date': data.date ? new Date(data.date) : new Date(),
     'Validité (jours)': data.validite || param_('VALIDITE_PROFORMA_JOURS', 30),
     'ID Entité': ent['ID Entité'], 'Raison sociale': ent['Raison sociale'],
     'Contact client': data.contact || ent['Contact principal'] || '', 'Objet': data.objet || '', 'Lieu': data.lieu || '',
-    'Total HT': t.ht, 'TVA': t.tva, 'Total TTC': t.ttc, 'Statut': 'Brouillon', 'Créée le': new Date()
+    'Total HT': t.ht, 'Taux TVA': taux, 'TVA': t.tva, 'Total TTC': t.ttc, 'Statut': 'Brouillon', 'Créée le': new Date()
   });
   journal_('Proforma créée', id + ' — ' + ent['Raison sociale']);
   if (data.emettre) return emettreProforma_(id);
   return { id: id, message: 'Proforma ' + id + ' créée en brouillon.' };
+}
+
+/** TVA choisie sur le document : data.avecTva (bool) et data.tauxTva (0.2 = 20 %). */
+function tauxSaisi_(data) {
+  if (data.avecTva === false) return 0;
+  if (data.tauxTva !== undefined && data.tauxTva !== '' && data.tauxTva !== null) return Number(data.tauxTva) || 0;
+  return tauxTva_();
+}
+
+/** Modifie une proforma en brouillon (en-tête + lignes). */
+function majBrouillon_(id, data) {
+  const p = trouver_(ONGLETS.PROFORMAS, 'ID', id);
+  if (!p) throw new Error('Proforma introuvable.');
+  if (p['Statut'] !== 'Brouillon' || p['N°']) throw new Error('Seul un brouillon peut être modifié.');
+  if (!data.lignes || !data.lignes.length) throw new Error('Ajoutez au moins une ligne.');
+  const ent = trouver_(ONGLETS.ENTITES, 'ID Entité', data.idEntite);
+  if (!ent) throw new Error('Entité introuvable.');
+  supprimerLignes_(id);
+  const taux = tauxSaisi_(data);
+  const t = totaux_(ecrireLignes_(id, data.lignes, data.lieu), taux);
+  maj_(ONGLETS.PROFORMAS, p._row, {
+    'Date': data.date ? new Date(data.date) : p['Date'], 'Validité (jours)': data.validite || p['Validité (jours)'],
+    'ID Entité': ent['ID Entité'], 'Raison sociale': ent['Raison sociale'], 'Contact client': data.contact || '',
+    'Objet': data.objet || '', 'Lieu': data.lieu || '', 'Total HT': t.ht, 'Taux TVA': taux, 'TVA': t.tva, 'Total TTC': t.ttc
+  });
+  journal_('Brouillon modifié', id);
+  if (data.emettre) return emettreProforma_(id);
+  return { id: id, message: 'Brouillon ' + id + ' enregistré.' };
+}
+
+function supprimerLignes_(idDoc) {
+  const s = sh_(ONGLETS.LIGNES);
+  lire_(ONGLETS.LIGNES).filter(function (l) { return l['ID Document'] === idDoc; })
+    .map(function (l) { return l._row; }).sort(function (a, b) { return b - a; })
+    .forEach(function (r) { s.deleteRow(r); });
 }
 
 function ecrireLignes_(idDoc, lignes, lieuDefaut) {
@@ -53,8 +89,13 @@ function ecrireLignes_(idDoc, lignes, lieuDefaut) {
   return total;
 }
 
-function totaux_(ht) {
-  const taux = tauxTva_();
+function tauxDoc_(doc) {
+  const t = doc ? doc['Taux TVA'] : '';
+  return t === '' || t === undefined || t === null ? tauxTva_() : Number(t) || 0;
+}
+
+function totaux_(ht, tauxForce) {
+  const taux = tauxForce === undefined ? tauxTva_() : Number(tauxForce) || 0;
   const tva = arrondi_(ht * taux);
   return { ht: arrondi_(ht), tva: tva, ttc: arrondi_(ht) + tva, taux: taux };
 }
@@ -79,9 +120,10 @@ function emettreProforma_(id) {
   if (p['N°']) throw new Error('Cette proforma a déjà le numéro ' + p['N°'] + '. Utilisez « Régénérer le PDF ».');
   // Recalcule les totaux depuis les lignes (si modifiées à la main en brouillon).
   const ht = lignesDe_(id).reduce(function (s, l) { return s + Number(l['Montant HT'] || 0); }, 0);
-  const t = totaux_(ht);
+  const taux = tauxDoc_(p);
+  const t = totaux_(ht, taux);
   const numero = prochainNumero_('PF', p['Date']);
-  maj_(ONGLETS.PROFORMAS, p._row, { 'N°': numero, 'Statut': 'Émise', 'Total HT': t.ht, 'TVA': t.tva, 'Total TTC': t.ttc });
+  maj_(ONGLETS.PROFORMAS, p._row, { 'N°': numero, 'Statut': 'Émise', 'Total HT': t.ht, 'Taux TVA': taux, 'TVA': t.tva, 'Total TTC': t.ttc });
   const url = genererPdf_('PF', trouver_(ONGLETS.PROFORMAS, 'ID', id));
   maj_(ONGLETS.PROFORMAS, p._row, { 'Lien PDF': url });
   return { id: id, numero: numero, url: url, message: 'Proforma ' + numero + ' émise. PDF : ' + url };
@@ -128,13 +170,14 @@ function creerFactureDepuisProforma_(idProforma, type) {
     return { code: l['Code'], domaine: l['Domaine'], designation: l['Désignation'], lieu: l['Lieu'], duree: l['Durée'], quantite: l['Quantité'], pu: l['Prix unitaire HT'] };
   });
   const htTotal = ecrireLignes_(id, lignes, p['Lieu']);
-  const t = totaux_(htTotal * pct / 100);
+  const taux = tauxDoc_(p);
+  const t = totaux_(htTotal * pct / 100, taux);
   const date = new Date();
   const numero = prochainNumero_('DE', date);
   const row = ajouter_(ONGLETS.FACTURES, {
     'ID': id, 'N°': numero, 'Date': date, 'Type': libelle, '%': pct, 'N° Proforma': p['N°'],
     'ID Entité': p['ID Entité'], 'Raison sociale': p['Raison sociale'], 'Contact client': p['Contact client'],
-    'Total HT': t.ht, 'TVA': t.tva, 'Total TTC': t.ttc,
+    'Total HT': t.ht, 'Taux TVA': taux, 'TVA': t.tva, 'Total TTC': t.ttc,
     'Compte dans encaissements': def.compte ? 'Oui' : 'Non',
     'Montant payé': 0, 'Reste à payer': def.compte ? t.ttc : 0,
     'Statut paiement': def.compte ? 'Impayée' : 'N.A. (dossier FMFP)', 'Statut': 'Émise', 'Créée le': new Date()

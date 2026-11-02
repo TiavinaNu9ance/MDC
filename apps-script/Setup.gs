@@ -35,12 +35,18 @@ function initialiserStructure() {
     setParam_('DOSSIER_EXPORT_ID', f.getId());
   }
 
+  // Premier superadmin : le propriétaire du script.
+  if (lire_(ONGLETS.UTILISATEURS).length === 0) {
+    const proprio = Session.getEffectiveUser().getEmail();
+    if (proprio) ajouter_(ONGLETS.UTILISATEURS, { 'Email': proprio.toLowerCase(), 'Nom': proprio.split('@')[0], 'Rôle': 'Superadmin',
+      'Est formateur': 'Non', 'Actif': 'Oui', 'Créé le': new Date() });
+  }
   appliquerValidations_();
   formats_();
   const def = ss.getSheetByName('Feuille 1') || ss.getSheetByName('Sheet1');
   if (def && def.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(def);
   journal_('Initialisation', 'Structure créée / mise à jour');
-  alerte_('Structure MDC ERP prête. Vérifiez l\'onglet Paramètres (TVA, logo), puis déployez l\'application web.');
+  alerte_('Structure MDC ERP prête. Superadmin : ' + Session.getEffectiveUser().getEmail() + '. Déployez ensuite l\'application web.');
 }
 
 function liste_(valeurs) {
@@ -64,7 +70,10 @@ function appliquerValidations_() {
     colRange_(ONGLETS.FMFP, c).insertCheckboxes();
   });
   colRange_(ONGLETS.EXPORTS, 'Classé sur le PC').insertCheckboxes();
-  colRange_(ONGLETS.PARTICIPANTS, 'Attestation').setDataValidation(liste_(['Oui', 'Non (présence < 80 %)', 'À vérifier']));
+  colRange_(ONGLETS.UTILISATEURS, 'Rôle').setDataValidation(liste_(ROLES));
+  colRange_(ONGLETS.UTILISATEURS, 'Est formateur').setDataValidation(liste_(['Oui', 'Non']));
+  colRange_(ONGLETS.UTILISATEURS, 'Actif').setDataValidation(liste_(['Oui', 'Non']));
+  colRange_(ONGLETS.PARTICIPANTS, 'Attestation').clearDataValidations();
 }
 
 function formats_() {

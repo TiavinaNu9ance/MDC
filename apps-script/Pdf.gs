@@ -70,6 +70,101 @@ function imageDataUri_(fileId) {
   } catch (e) { return ''; }
 }
 
+/** Partie fixe du contexte des documents (société, apparence, mentions). */
+function contexteSociete_(avecImages) {
+  const P = function (k, d) { return param_(k, d === undefined ? '' : d); };
+  return {
+    societe: { nom: P('SOCIETE_NOM'), adresse: P('SOCIETE_ADRESSE'), email: P('SOCIETE_EMAIL'), tel: P('SOCIETE_TEL'),
+      nif: P('SOCIETE_NIF'), stat: P('SOCIETE_STAT'), rcs: P('SOCIETE_RCS'), mention: P('MENTION_FISCALE_SUP') },
+    conditions: P('CONDITIONS_PAIEMENT'), rib: P('RIB'), mvola: P('MVOLA'), devise: P('DEVISE', 'Ar'),
+    c1: P('COULEUR_PRINCIPALE', '#1B2B5E'), c2: P('COULEUR_ACCENT', '#C89B2A'),
+    logo: avecImages === false ? '' : imageDataUri_(P('LOGO_FILE_ID')),
+    signature: avecImages === false ? '' : imageDataUri_(P('SIGNATURE_FILE_ID'))
+  };
+}
+
+/** Contexte complet d'un document enregistré (PF ou DE). */
+function contexteDocument_(type, doc) {
+  const c = contexteSociete_();
+  const ent = trouver_(ONGLETS.ENTITES, 'ID Entité', doc['ID Entité']) || {};
+  const estPF = type === 'PF';
+  const lignes = lignesDe_(doc['ID']).map(function (l) {
+    return { domaine: l['Domaine'], designation: l['Désignation'], lieu: l['Lieu'], duree: l['Durée'],
+      quantite: l['Quantité'], pu: l['Prix unitaire HT'], montant: l['Montant HT'] };
+  });
+  const taux = tauxDoc_(doc);
+  const validite = estPF ? new Date(new Date(doc['Date']).getTime() + Number(doc['Validité (jours)'] || 30) * 86400000) : null;
+  c.titre = estPF ? 'Facture Proforma' : 'Facture';
+  c.numero = doc['N°']; c.date = fmtDate_(doc['Date']); c.validite = validite ? fmtDate_(validite) : '';
+  c.refProforma = estPF ? '' : doc['N° Proforma']; c.contact = doc['Contact client']; c.objet = estPF ? doc['Objet'] : (trouver_(ONGLETS.PROFORMAS, 'N°', doc['N° Proforma']) || {})['Objet'];
+  c.typeLibelle = estPF ? '' : doc['Type']; c.pct = estPF ? 100 : Number(doc['%']) || 100;
+  c.client = { nom: ent['Raison sociale'] || doc['Raison sociale'], adresse: ent['Adresse'], email: ent['Email'], tel: ent['Téléphone'], nif: ent['NIF'], stat: ent['STAT'] };
+  c.particulier = !ent['NIF'] && !ent['STAT'];
+  c.lignes = lignes;
+  c.htLignes = lignes.reduce(function (s, l) { return s + Number(l.montant || 0); }, 0);
+  c.ht = doc['Total HT']; c.tva = doc['TVA']; c.ttc = doc['Total TTC']; c.taux = taux; c.avecTva = taux > 0;
+  return c;
+}
+
+function htmlDocument_(type, doc) { return gabaritDocument(contexteDocument_(type, doc)); }
+
+/**
+ * Onglet « Exports » : une ligne par PDF, avec le dossier cible sur le PC,
+ * pour que la session « Assistant MDC » classe les fichiers dans D:\MDC\Gestion MDC.
+ */
+function enregistrerExport_(type, doc, nom, url) {
+  const numPf = type === 'PF' ? doc['N°'] : doc['N° Proforma'];
+  const pf = trouver_(ONGLETS.PROFORMAS, 'N°', numPf) || {};
+  const idSession = pf['ID Session'] || '';
+  const annee = '20' + String(doc['N°']).slice(0, 2); // l'année vient du numéro
+  const cible = type === 'PF' ? '02 Finance\\Proformas et devis\\' + annee : '02 Finance\\Factures emises\\' + annee;
+  const obj = {
+    'N°': doc['N°'], 'Date': doc['Date'], 'Type': type === 'PF' ? 'Proforma' : doc['Type'], 'N° Proforma': numPf,
+    'ID Entité': doc['ID Entité'], 'Raison sociale': doc['Raison sociale'], 'ID Session': idSession,
+    'Dossier session (PC)': idSession ? dossierSessionPc_(idSession) : '', 'Dossier cible (PC)': cible,
+    'Nom du fichier': nom, 'Lien Drive': url, 'Classé sur le PC': false, 'Exporté le': new Date()
+  };
+  const ex = lire_(ONGLETS.EXPORTS).filter(function (e) { return e['N°'] === doc['N°']; })[0];
+  if (ex) maj_(ONGLETS.EXPORTS, ex._row, obj); else ajouter_(ONGLETS.EXPORTS, obj);
+}
+
+/** « 04 Formations\Sessions\AAAA-MM Entité - Formation\Facturation » (règle du LISEZ-MOI). */
+function dossierSessionPc_(idSession) {
+  const s = trouver_(ONGLETS.SESSIONS, 'ID Session', idSession);
+  if (!s) return '';
+  const pf = trouver_(ONGLETS.PROFORMAS, 'N°', s['N° Proforma']) || {};
+  const d = new Date(s['Date début'] || pf['Date'] || new Date());
+  const aaaamm = Utilities.formatDate(d, ss_().getSpreadsheetTimeZone(), 'yyyy-MM');
+  const nom = (aaaamm + ' ' + s['Raison sociale'] + ' - ' + s['Intitulé']).replace(/[\\\/:*?"<>|]/g, '-').slice(0, 120);
+  return '04 Formations\\Sessions\\' + nom + '\\Facturation';
+}
+
+/** Recalcule la colonne « Dossier session (PC) » (après création de session ou saisie de la date de début). */
+function actualiserExports() {
+  lire_(ONGLETS.EXPORTS).forEach(function (e) {
+    const pf = trouver_(ONGLETS.PROFORMAS, 'N°', e['N° Proforma']) || {};
+    const id = pf['ID Session'] || '';
+    if (id) maj_(ONGLETS.EXPORTS, e._row, { 'ID Session': id, 'Dossier session (PC)': dossierSessionPc_(id) });
+  });
+}
+
+function dossierExport_(sous, annee) {
+  const racine = DriveApp.getFolderById(param_('DOSSIER_EXPORT_ID'));
+  function enfant(parent, nom) {
+    const it = parent.getFoldersByName(nom);
+    return it.hasNext() ? it.next() : parent.createFolder(nom);
+  }
+  return enfant(enfant(racine, sous), String(annee));
+}
+
+function imageDataUri_(fileId) {
+  if (!fileId) return '';
+  try {
+    const b = DriveApp.getFileById(fileId).getBlob();
+    return 'data:' + b.getContentType() + ';base64,' + Utilities.base64Encode(b.getBytes());
+  } catch (e) { return ''; }
+}
+
 function htmlDocument_(type, doc) {
   const P = function (k, d) { return param_(k, d || ''); };
   const c1 = P('COULEUR_PRINCIPALE', '#1B2B5E'), c2 = P('COULEUR_ACCENT', '#C89B2A');
