@@ -151,7 +151,19 @@ const PHASES = ['P1 Analyse des besoins', 'P2 Test de niveau', 'P3 Validation de
 
 /* ===== Utils.gs ===== */
 /** MDC ERP — Fonctions utilitaires (lecture/écriture des onglets). */
-function ss_() { return SpreadsheetApp.getActive(); }
+function ss_() {
+  let s = null;
+  try { s = SpreadsheetApp.getActiveSpreadsheet(); } catch (e) { s = null; }
+  if (s) return s;
+  const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+  if (!id) throw new Error('Base introuvable : lancez initialiserStructure depuis l\'éditeur Apps Script.');
+  return SpreadsheetApp.openById(id);
+}
+
+/** Message à l'utilisateur : boîte de dialogue dans la feuille, sinon journal (éditeur, application web). */
+function alerte_(msg) {
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
+}
 
 function sh_(nom) {
   const s = ss_().getSheetByName(nom);
@@ -195,12 +207,18 @@ function trouver_(nom, col, valeur) {
 }
 
 /** Paramètre (onglet Paramètres). */
+let CACHE_PARAMS_ = null;
 function param_(cle, defaut) {
-  const p = trouver_(ONGLETS.PARAMS, 'Clé', cle);
-  return p && p['Valeur'] !== '' ? p['Valeur'] : defaut;
+  if (!CACHE_PARAMS_) {
+    CACHE_PARAMS_ = {};
+    lire_(ONGLETS.PARAMS).forEach(function (p) { CACHE_PARAMS_[p['Clé']] = p['Valeur']; });
+  }
+  const v = CACHE_PARAMS_[cle];
+  return v !== undefined && v !== '' ? v : defaut;
 }
 
 function setParam_(cle, valeur) {
+  CACHE_PARAMS_ = null;
   const p = trouver_(ONGLETS.PARAMS, 'Clé', cle);
   if (p) maj_(ONGLETS.PARAMS, p._row, { 'Valeur': valeur });
   else ajouter_(ONGLETS.PARAMS, { 'Clé': cle, 'Valeur': valeur });
@@ -257,6 +275,7 @@ function echapper_(t) {
 /** MDC ERP — Initialisation : crée ou complète tous les onglets. Peut être relancé sans perte de données. */
 function initialiserStructure() {
   const ss = ss_();
+  PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', ss.getId());
   Object.keys(COLONNES).forEach(function (nom) {
     let s = ss.getSheetByName(nom);
     if (!s) s = ss.insertSheet(nom);
@@ -295,7 +314,7 @@ function initialiserStructure() {
   const def = ss.getSheetByName('Feuille 1') || ss.getSheetByName('Sheet1');
   if (def && def.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(def);
   journal_('Initialisation', 'Structure créée / mise à jour');
-  ui_().alert('Structure MDC ERP prête. Vérifiez l\'onglet Paramètres (TVA, compteurs de départ, logo).');
+  alerte_('Structure MDC ERP prête. Vérifiez l\'onglet Paramètres (TVA, logo), puis déployez l\'application web.');
 }
 
 function liste_(valeurs) {
@@ -571,12 +590,22 @@ function enregistrerPaiement() {
   const r2 = ui.prompt('Mode et référence', 'Ex. : Virement / OV 123456', ui.ButtonSet.OK_CANCEL);
   if (r2.getSelectedButton() !== ui.Button.OK) return;
   const parts = r2.getResponseText().split('/');
+  paiementCore_(f['N°'], montant, (parts[0] || '').trim(), (parts[1] || '').trim(), new Date());
+}
+
+function paiementCore_(numFacture, montant, mode, reference, date) {
+  const f = trouver_(ONGLETS.FACTURES, 'N°', numFacture);
+  if (!f) throw new Error('Facture introuvable : ' + numFacture);
+  if (f['Statut'] === 'Annulée') throw new Error('Facture annulée.');
+  if (f['Compte dans encaissements'] !== 'Oui') throw new Error('La facture 100 % FMFP ne reçoit pas de paiement : saisissez-le sur l\'acompte ou le solde.');
+  montant = Number(montant);
+  if (!(montant > 0)) throw new Error('Montant invalide.');
   ajouter_(ONGLETS.PAIEMENTS, {
-    'Date': new Date(), 'N° Facture': f['N°'], 'Montant': montant,
-    'Mode': (parts[0] || '').trim(), 'Référence': (parts[1] || '').trim(), 'Saisi le': new Date()
+    'Date': date ? new Date(date) : new Date(), 'N° Facture': numFacture, 'Montant': montant,
+    'Mode': mode || '', 'Référence': reference || '', 'Saisi le': new Date()
   });
   recalculerPaiements();
-  journal_('Paiement', f['N°'] + ' : ' + montant);
+  journal_('Paiement', numFacture + ' : ' + montant);
 }
 
 /** Recalcule montant payé / reste / statut de toutes les factures depuis l'onglet Paiements. */
@@ -798,11 +827,18 @@ function testLettres() {
 
 function creerSessionDepuisProforma() {
   const p = ligneSelectionnee_(ONGLETS.PROFORMAS);
-  if (!p['N°']) throw new Error('Émettez d\'abord la proforma.');
-  if (p['ID Session']) throw new Error('Session déjà créée : ' + p['ID Session']);
   const ui = ui_();
   const fm = ui.alert('Dossier FMFP ?', 'Cette formation est-elle financée via le FMFP ?', ui.ButtonSet.YES_NO);
-  const fmfp = fm === ui.Button.YES ? 'Oui' : 'Non';
+  const id = creerSessionCore_(p['ID'], fm === ui.Button.YES);
+  ui.alert('Session ' + id + ' créée. Complétez formateurs et dates.');
+}
+
+function creerSessionCore_(idProforma, estFmfp) {
+  const p = trouver_(ONGLETS.PROFORMAS, 'ID', idProforma);
+  if (!p) throw new Error('Proforma introuvable.');
+  if (!p['N°']) throw new Error('Émettez d\'abord la proforma.');
+  if (p['ID Session']) throw new Error('Session déjà créée : ' + p['ID Session']);
+  const fmfp = estFmfp ? 'Oui' : 'Non';
   const annee = new Date(p['Date']).getFullYear();
   const id = nouvelId_(ONGLETS.SESSIONS, 'ID Session', 'S' + annee + '-');
   const nbPart = lignesDe_(p['ID']).filter(function (l) { return String(l['Code']).indexOf('DIV-') !== 0; })
@@ -824,7 +860,12 @@ function creerSessionDepuisProforma() {
   }
   actualiserExports();
   journal_('Session créée', id + ' ← ' + p['N°'] + ' (FMFP : ' + fmfp + ')');
-  ui.alert('Session ' + id + ' créée' + (fmfp === 'Oui' ? ' + dossier FMFP.' : '.') + ' Complétez formateurs et dates dans « Sessions ».');
+  // Rattache les factures déjà émises au dossier FMFP.
+  lire_(ONGLETS.FACTURES).filter(function (f) { return f['N° Proforma'] === p['N°'] && f['Statut'] !== 'Annulée'; }).forEach(function (f) {
+    const t = /FMFP/.test(f['Type']) ? 'FMFP_100' : /^Acompte/.test(f['Type']) ? 'ACOMPTE' : /^Solde/.test(f['Type']) ? 'SOLDE' : '';
+    if (t) lierFactureFmfp_(p['N°'], t, f['N°']);
+  });
+  return id;
 }
 
 /** Rattache automatiquement les n° de facture au dossier FMFP. */
@@ -959,6 +1000,11 @@ function hs_(methode, chemin, corps) {
 }
 
 function synchroniserEntreprises() {
+  const n = synchroniserEntreprisesCore_();
+  alerte_(n.crees + ' entité(s) créée(s), ' + n.majs + ' mise(s) à jour, ' + n.groupes + ' groupe(s).');
+}
+
+function synchroniserEntreprisesCore_() {
   const props = ['name', 'address', 'city', 'phone', 'hs_parent_company_id'];
   const toutes = [];
   let after = '';
@@ -967,21 +1013,24 @@ function synchroniserEntreprises() {
     (r.results || []).forEach(function (c) { toutes.push({ id: c.id, p: c.properties || {} }); });
     after = r.paging && r.paging.next ? r.paging.next.after : '';
   } while (after);
-  const n = integrerEntreprises_(toutes.map(function (c) {
+  return integrerEntreprises_(toutes.map(function (c) {
     return { id: c.id, nom: c.p.name, parent: c.p.hs_parent_company_id, adresse: [c.p.address, c.p.city].filter(String).join(', '), tel: c.p.phone };
   }), 'HubSpot API');
-  ui_().alert(n.crees + ' entité(s) créée(s), ' + n.majs + ' mise(s) à jour, ' + n.groupes + ' groupe(s).');
 }
 
 /** Import manuel : collez un export HubSpot (entreprises) dans l'onglet « Import HubSpot ». */
 function importerDepuisOnglet() {
+  const n = importerDepuisOngletCore_();
+  alerte_(n.crees + ' entité(s) créée(s), ' + n.majs + ' mise(s) à jour, ' + n.groupes + ' groupe(s).');
+}
+
+function importerDepuisOngletCore_() {
   const lignes = lire_(ONGLETS.IMPORT);
   if (!lignes.length) throw new Error('Onglet « Import HubSpot » vide.');
-  const n = integrerEntreprises_(lignes.map(function (l) {
+  return integrerEntreprises_(lignes.map(function (l) {
     return { id: String(l['Record ID']), nom: l['Company name'], parent: String(l['Parent company ID'] || ''),
       adresse: [l['Street address'], l['City']].filter(String).join(', '), tel: l['Phone number'], email: l['Email'] };
   }), 'Import HubSpot');
-  ui_().alert(n.crees + ' entité(s) créée(s), ' + n.majs + ' mise(s) à jour, ' + n.groupes + ' groupe(s).');
 }
 
 /**
@@ -1034,6 +1083,10 @@ function integrerEntreprises_(liste, source) {
 
 /** Crée dans HubSpot une tâche de relance (e-mail à envoyer depuis HubSpot) pour chaque relance FMFP due. */
 function creerRelancesHubSpot() {
+  alerte_(creerRelancesHubSpotCore_() + ' tâche(s) de relance créée(s) dans HubSpot.');
+}
+
+function creerRelancesHubSpotCore_() {
   const auj = new Date();
   let n = 0;
   lire_(ONGLETS.FMFP).forEach(function (d) {
@@ -1052,7 +1105,7 @@ function creerRelancesHubSpot() {
     n++;
   });
   journal_('Relances HubSpot', n + ' tâche(s)');
-  ui_().alert(n + ' tâche(s) de relance créée(s) dans HubSpot.');
+  return n;
 }
 
 /* ===== Menu.gs ===== */
@@ -1091,3 +1144,191 @@ function ouvrirNouvelleProforma() {
   const html = HtmlService.createHtmlOutputFromFile('NouvelleProforma').setWidth(980).setHeight(640);
   SpreadsheetApp.getUi().showModalDialog(html, 'Nouvelle proforma');
 }
+
+/* ===== WebApp.gs ===== */
+/**
+ * MDC ERP — Application web (interface). La Google Sheet sert uniquement de base de données.
+ * Déploiement : Apps Script > Déployer > Nouveau déploiement > Application Web.
+ */
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('MDC ERP')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+const ONGLETS_WEB_ = ['GROUPES', 'ENTITES', 'CATALOGUE', 'FORMATEURS', 'PROFORMAS', 'FACTURES', 'LIGNES',
+  'PAIEMENTS', 'SESSIONS', 'PARTICIPANTS', 'FMFP', 'EXPORTS', 'PARAMS'];
+
+/** Onglets modifiables depuis l'interface, et colonnes protégées (calculées par l'ERP). */
+const EDITABLES_ = {
+  'Paramètres': { proteges: ['Clé', 'DOSSIER_EXPORT_ID'] },
+  'Catalogue': { proteges: [] },
+  'Formateurs': { proteges: ['ID Formateur'] },
+  'Groupes': { proteges: ['ID Groupe', 'HubSpot ID'] },
+  'Entités': { proteges: ['ID Entité', 'HubSpot ID', 'Source'] },
+  'Sessions': { proteges: ['ID Session', 'ID Entité', 'N° Proforma', 'FMFP', 'Phase actuelle', 'Alerte'] },
+  'Participants': { proteges: [] },
+  'Proformas': { proteges: ['ID', 'N°', 'Statut', 'Date', 'ID Entité', 'Raison sociale', 'Total HT', 'TVA', 'Total TTC', 'ID Session', 'Lien PDF', 'Créée le'] }
+};
+
+function serialiser_(rows) {
+  const tz = ss_().getSpreadsheetTimeZone();
+  return rows.map(function (o) {
+    const r = {};
+    Object.keys(o).forEach(function (k) {
+      const v = o[k];
+      r[k] = v instanceof Date ? Utilities.formatDate(v, tz, 'yyyy-MM-dd') : v;
+    });
+    return r;
+  });
+}
+
+/** Charge toute la base (volumes MDC : quelques centaines de lignes). */
+function apiCharger() {
+  const d = {};
+  ONGLETS_WEB_.forEach(function (k) { d[k] = serialiser_(lire_(ONGLETS[k])); });
+  d.PARAMS = d.PARAMS.filter(function (p) { return p['Clé'] !== 'DOSSIER_EXPORT_ID'; });
+  d.constantes = {
+    PHASES: PHASES, ETAPES_FMFP: ETAPES_FMFP, STATUT_PHASE: STATUT_PHASE, STATUT_PROFORMA: STATUT_PROFORMA,
+    MODES_PAIEMENT: MODES_PAIEMENT, TVA: tauxTva_(), TVA_APPLICABLE: tvaApplicable_(),
+    POURCENT_ACOMPTE: Number(param_('POURCENT_ACOMPTE', 70)), VALIDITE: Number(param_('VALIDITE_PROFORMA_JOURS', 30)),
+    SOCIETE: param_('SOCIETE_NOM_COURT', 'MDC'), HUBSPOT: !!PropertiesService.getScriptProperties().getProperty('HUBSPOT_TOKEN'),
+    DOSSIER_PDF: param_('DOSSIER_EXPORT_ID', '') ? 'https://drive.google.com/drive/folders/' + param_('DOSSIER_EXPORT_ID', '') : '',
+    UTILISATEUR: Session.getActiveUser().getEmail(),
+    AUJOURDHUI: Utilities.formatDate(new Date(), ss_().getSpreadsheetTimeZone(), 'yyyy-MM-dd')
+  };
+  return d;
+}
+
+function rep_(message, extra) {
+  const r = { message: message, data: apiCharger() };
+  Object.keys(extra || {}).forEach(function (k) { r[k] = extra[k]; });
+  return r;
+}
+
+/* ---------- Documents ---------- */
+function apiCreerProforma(data) { const r = creerProforma(data); return rep_(r.message, { id: r.id, url: r.url }); }
+function apiEmettre(idProforma) { const r = emettreProforma_(idProforma); return rep_(r.message, { url: r.url }); }
+function apiFacturer(idProforma, type) {
+  if (!TYPES_FACTURE[type]) throw new Error('Type de facture inconnu.');
+  const r = creerFactureDepuisProforma_(idProforma, type);
+  return rep_(r.message, { url: r.url });
+}
+function apiStatutProforma(idProforma, statut) {
+  if (['Acceptée', 'Refusée'].indexOf(statut) < 0) throw new Error('Statut non autorisé.');
+  const p = trouver_(ONGLETS.PROFORMAS, 'ID', idProforma);
+  if (!p || !p['N°']) throw new Error('Proforma non émise.');
+  maj_(ONGLETS.PROFORMAS, p._row, { 'Statut': statut });
+  journal_('Statut proforma', p['N°'] + ' → ' + statut);
+  return rep_('Proforma ' + p['N°'] + ' : ' + statut + '.');
+}
+function apiAnnuler(type, id) {
+  const onglet = type === 'PF' ? ONGLETS.PROFORMAS : ONGLETS.FACTURES;
+  const o = trouver_(onglet, 'ID', id);
+  if (!o) throw new Error('Document introuvable.');
+  maj_(onglet, o._row, type === 'PF' ? { 'Statut': 'Annulée' } : { 'Statut': 'Annulée', 'Reste à payer': 0, 'Statut paiement': 'Annulée' });
+  journal_('Annulation', o['N°'] || o['ID']);
+  return rep_((o['N°'] || o['ID']) + ' annulé(e). Le numéro ne sera jamais réutilisé.');
+}
+function apiRegenererPdf(type, id) {
+  const onglet = type === 'PF' ? ONGLETS.PROFORMAS : ONGLETS.FACTURES;
+  const o = trouver_(onglet, 'ID', id);
+  if (!o || !o['N°']) throw new Error('Document non émis.');
+  if (type === 'DE') o._totalProformaHT = lignesDe_(id).reduce(function (a, l) { return a + Number(l['Montant HT'] || 0); }, 0);
+  const url = genererPdf_(type, o);
+  maj_(onglet, o._row, { 'Lien PDF': url });
+  return rep_('PDF régénéré (même numéro).', { url: url });
+}
+function apiPaiement(numFacture, montant, mode, reference, date) {
+  paiementCore_(numFacture, montant, mode, reference, date);
+  return rep_('Paiement enregistré sur ' + numFacture + '.');
+}
+
+/* ---------- Formations ---------- */
+function apiCreerSession(idProforma, fmfp) {
+  const id = creerSessionCore_(idProforma, fmfp);
+  return rep_('Session ' + id + ' créée' + (fmfp ? ' avec dossier FMFP.' : '.'), { id: id });
+}
+function apiControlerPhases() { controlerPhases(); return rep_('Contrôle des 6 phases effectué.'); }
+function apiAttestations() { calculerAttestations(); controlerPhases(); return rep_('Attestations calculées (présence ≥ 80 %).'); }
+
+function apiMajFmfp(ligne, champs) {
+  const d = lire_(ONGLETS.FMFP).filter(function (x) { return x._row === Number(ligne); })[0];
+  if (!d) throw new Error('Dossier FMFP introuvable.');
+  const autorises = ['Étape', 'CV formateurs envoyés', 'Rapports envoyés', 'Fiches de présence envoyées', 'Commentaire', 'Prochaine relance'];
+  const m = {};
+  Object.keys(champs).forEach(function (k) { if (autorises.indexOf(k) >= 0) m[k] = champs[k]; });
+  if (m['Étape'] && m['Étape'] !== d['Étape']) {
+    if (ETAPES_FMFP.indexOf(m['Étape']) < 0) throw new Error('Étape inconnue.');
+    const now = new Date();
+    m['Date étape'] = now;
+    m['Prochaine relance'] = /Clôturé/.test(m['Étape']) ? '' : new Date(now.getTime() + Number(param_('DELAI_RELANCE_FMFP_JOURS', 7)) * 86400000);
+    m['Relance HubSpot créée'] = false;
+  } else if (m['Prochaine relance']) {
+    m['Prochaine relance'] = new Date(m['Prochaine relance']);
+  }
+  maj_(ONGLETS.FMFP, d._row, m);
+  journal_('FMFP', d['ID Session'] + ' : ' + (m['Étape'] || 'mise à jour'));
+  return rep_('Dossier FMFP ' + d['ID Session'] + ' mis à jour.');
+}
+
+/* ---------- Édition générique ---------- */
+function apiEnregistrer(nomOnglet, ligne, champs) {
+  const regle = EDITABLES_[nomOnglet];
+  if (!regle) throw new Error('Onglet non modifiable depuis l\'interface.');
+  const s = sh_(nomOnglet);
+  const h = entetes_(s);
+  const m = {};
+  Object.keys(champs).forEach(function (k) {
+    if (h.indexOf(k) < 0 || regle.proteges.indexOf(k) >= 0) return;
+    let v = champs[k];
+    if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) v = new Date(v + 'T00:00:00');
+    m[k] = v;
+  });
+  if (nomOnglet === ONGLETS.PARAMS) {
+    const p = lire_(nomOnglet).filter(function (x) { return x._row === Number(ligne); })[0];
+    if (p && regle.proteges.indexOf(p['Clé']) >= 0) throw new Error('Paramètre protégé.');
+  }
+  if (nomOnglet === ONGLETS.PROFORMAS) {
+    const p = lire_(nomOnglet).filter(function (x) { return x._row === Number(ligne); })[0];
+    if (p && p['N°']) throw new Error('Proforma émise : non modifiable (annulez et recréez).');
+  }
+  if (ligne) {
+    maj_(nomOnglet, Number(ligne), m);
+  } else {
+    const prefixes = { 'Entités': ['ID Entité', 'E'], 'Groupes': ['ID Groupe', 'G'], 'Formateurs': ['ID Formateur', 'T'] };
+    if (prefixes[nomOnglet]) m[prefixes[nomOnglet][0]] = nouvelId_(nomOnglet, prefixes[nomOnglet][0], prefixes[nomOnglet][1]);
+    if (nomOnglet === ONGLETS.ENTITES) { m['Source'] = 'Saisie ERP'; m['Mis à jour le'] = new Date(); }
+    if (nomOnglet === ONGLETS.CATALOGUE && !m['Code']) throw new Error('Code obligatoire.');
+    ajouter_(nomOnglet, m);
+  }
+  if (nomOnglet === ONGLETS.SESSIONS || nomOnglet === ONGLETS.PARTICIPANTS) controlerPhases();
+  if (nomOnglet === ONGLETS.SESSIONS) actualiserExports();
+  journal_('Modification', nomOnglet + (ligne ? ' ligne ' + ligne : ' (ajout)'));
+  return rep_('Enregistré.');
+}
+
+function apiSupprimerParticipant(ligne) {
+  const p = lire_(ONGLETS.PARTICIPANTS).filter(function (x) { return x._row === Number(ligne); })[0];
+  if (!p) throw new Error('Participant introuvable.');
+  sh_(ONGLETS.PARTICIPANTS).deleteRow(p._row);
+  journal_('Participant supprimé', p['ID Session'] + ' : ' + p['Nom']);
+  return rep_('Participant supprimé.');
+}
+
+/* ---------- HubSpot ---------- */
+function apiCleHubSpot(jeton) {
+  jeton = String(jeton || '').trim();
+  if (!/^pat-/.test(jeton)) throw new Error('Le jeton doit commencer par « pat- ».');
+  PropertiesService.getScriptProperties().setProperty('HUBSPOT_TOKEN', jeton);
+  return rep_('Clé HubSpot enregistrée.');
+}
+function apiSyncHubSpot() {
+  const n = synchroniserEntreprisesCore_();
+  return rep_(n.crees + ' entité(s) créée(s), ' + n.majs + ' mise(s) à jour, ' + n.groupes + ' groupe(s).');
+}
+function apiImportHubSpot() {
+  const n = importerDepuisOngletCore_();
+  return rep_(n.crees + ' entité(s) créée(s), ' + n.majs + ' mise(s) à jour.');
+}
+function apiRelancesHubSpot() { return rep_(creerRelancesHubSpotCore_() + ' tâche(s) de relance créée(s) dans HubSpot.'); }

@@ -1,22 +1,22 @@
-# Installation de l'ERP MDC (Google Sheets + Apps Script)
+# Mise en route de l'ERP MDC
 
-1. Créer la base : sur drive.google.com, **Nouveau > Importer un fichier** → `base/MDC_ERP_Base.xlsx`, puis l'ouvrir et faire **Fichier > Enregistrer au format Google Sheets**. Renommer en « MDC ERP ».
-   La base contient déjà : paramètres MDC, catalogue 2026, 68 entreprises HubSpot (+ EDEN, PROMODIM, 1 particulier), groupes (RAJABALI → RAJABALI, NOVOTEL Alarobia, EDEN ; Imperial Brands → PROMODIM), formateurs, historique des 15 factures 2026.
-   (Sinon : partir d'une Google Sheet vide, l'étape 6 crée tous les onglets.)
-2. Menu **Extensions > Apps Script**.
-3. Dans l'éditeur : supprimer le contenu de `Code.gs`, puis créer un fichier par fichier `.gs` de ce dossier (même nom) et coller le contenu :
-   `Config`, `Utils`, `Setup`, `Numerotation`, `Facturation`, `Pdf`, `Lettres`, `Formations`, `HubSpot`, `Menu`.
-4. Créer un fichier **HTML** nommé `NouvelleProforma` et coller `NouvelleProforma.html`.
-5. Paramètres du projet (roue dentée) : cocher « Afficher le fichier manifeste appsscript.json », puis coller `appsscript.json`.
-6. Exécuter la fonction `initialiserStructure` (autoriser l'accès demandé par Google). Elle complète la base sans effacer les données (listes déroulantes, cases à cocher, dossier Drive des PDF).
-7. Recharger la Google Sheet : le menu **MDC ERP** apparaît.
-8. Onglet **Paramètres** : vérifier `TVA_APPLICABLE` / `TAUX_TVA`, ajouter `LOGO_FILE_ID` (ID Drive du logo).
-9. HubSpot : **MDC ERP > HubSpot > Configurer la clé**, puis **Synchroniser les entreprises**.
+Architecture : **interface web** (Apps Script, `Index.html`) → **base de données** (Google Sheet). Les PDF vont dans Google Drive.
 
-## Clé HubSpot (application privée)
-Dans HubSpot : Paramètres > Intégrations > Applications privées > Créer. Portées nécessaires :
-- `crm.objects.companies.read` (synchronisation des entreprises) ;
-- pour les relances : droit d'écriture sur les tâches (le nom exact de la portée est à vérifier dans l'écran HubSpot).
-Copier le jeton (`pat-…`) et le coller dans l'ERP. Ne jamais le coller dans une cellule.
+## Fichiers à coller (dossier `a-coller/`)
+| Fichier | Où le coller dans Apps Script |
+|---|---|
+| `Code.gs` | Remplace le contenu de `Code.gs` |
+| `Index.html` | Nouveau fichier HTML nommé `Index` (l'interface) |
+| `NouvelleProforma.html` | Nouveau fichier HTML nommé `NouvelleProforma` (formulaire depuis la feuille, optionnel) |
+| `appsscript.json` | Manifeste (Paramètres du projet > cocher « Afficher le fichier manifeste ») |
 
-Sans clé : exporter les entreprises depuis HubSpot, coller les colonnes dans l'onglet **Import HubSpot**, puis *Importer depuis l'onglet*.
+## Étapes
+1. La base doit être au format Google Sheets (pas de badge .XLSX ; sinon Fichier > Enregistrer au format Google Sheets).
+2. Fichier > Paramètres > Fuseau horaire : (GMT+03:00) Antananarivo.
+3. Extensions > Apps Script : coller les 4 fichiers ci-dessus. Enregistrer.
+4. Exécuter `initialiserStructure` et autoriser (Paramètres avancés > Accéder à … (non sécurisé) > Autoriser).
+5. **Déployer > Nouveau déploiement** > type **Application Web** : Exécuter en tant que **Moi**, Accès **Seulement moi** > Déployer. Copier l'URL `…/exec` et la mettre en favori : c'est l'ERP.
+6. Après chaque mise à jour du code : **Déployer > Gérer les déploiements > (crayon) > Version : Nouvelle version > Déployer** (l'URL reste la même).
+
+## Clé HubSpot
+HubSpot : Paramètres > Intégrations > Applications privées (selon la version : Développement > Applications héritées — non vérifié). Portées : `crm.objects.companies.read` + écriture des tâches pour les relances. Coller le jeton `pat-…` dans l'ERP : Réglages > HubSpot.

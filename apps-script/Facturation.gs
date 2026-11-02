@@ -186,12 +186,22 @@ function enregistrerPaiement() {
   const r2 = ui.prompt('Mode et référence', 'Ex. : Virement / OV 123456', ui.ButtonSet.OK_CANCEL);
   if (r2.getSelectedButton() !== ui.Button.OK) return;
   const parts = r2.getResponseText().split('/');
+  paiementCore_(f['N°'], montant, (parts[0] || '').trim(), (parts[1] || '').trim(), new Date());
+}
+
+function paiementCore_(numFacture, montant, mode, reference, date) {
+  const f = trouver_(ONGLETS.FACTURES, 'N°', numFacture);
+  if (!f) throw new Error('Facture introuvable : ' + numFacture);
+  if (f['Statut'] === 'Annulée') throw new Error('Facture annulée.');
+  if (f['Compte dans encaissements'] !== 'Oui') throw new Error('La facture 100 % FMFP ne reçoit pas de paiement : saisissez-le sur l\'acompte ou le solde.');
+  montant = Number(montant);
+  if (!(montant > 0)) throw new Error('Montant invalide.');
   ajouter_(ONGLETS.PAIEMENTS, {
-    'Date': new Date(), 'N° Facture': f['N°'], 'Montant': montant,
-    'Mode': (parts[0] || '').trim(), 'Référence': (parts[1] || '').trim(), 'Saisi le': new Date()
+    'Date': date ? new Date(date) : new Date(), 'N° Facture': numFacture, 'Montant': montant,
+    'Mode': mode || '', 'Référence': reference || '', 'Saisi le': new Date()
   });
   recalculerPaiements();
-  journal_('Paiement', f['N°'] + ' : ' + montant);
+  journal_('Paiement', numFacture + ' : ' + montant);
 }
 
 /** Recalcule montant payé / reste / statut de toutes les factures depuis l'onglet Paiements. */

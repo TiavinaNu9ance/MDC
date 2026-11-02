@@ -26,6 +26,11 @@ function hs_(methode, chemin, corps) {
 }
 
 function synchroniserEntreprises() {
+  const n = synchroniserEntreprisesCore_();
+  alerte_(n.crees + ' entité(s) créée(s), ' + n.majs + ' mise(s) à jour, ' + n.groupes + ' groupe(s).');
+}
+
+function synchroniserEntreprisesCore_() {
   const props = ['name', 'address', 'city', 'phone', 'hs_parent_company_id'];
   const toutes = [];
   let after = '';
@@ -34,21 +39,24 @@ function synchroniserEntreprises() {
     (r.results || []).forEach(function (c) { toutes.push({ id: c.id, p: c.properties || {} }); });
     after = r.paging && r.paging.next ? r.paging.next.after : '';
   } while (after);
-  const n = integrerEntreprises_(toutes.map(function (c) {
+  return integrerEntreprises_(toutes.map(function (c) {
     return { id: c.id, nom: c.p.name, parent: c.p.hs_parent_company_id, adresse: [c.p.address, c.p.city].filter(String).join(', '), tel: c.p.phone };
   }), 'HubSpot API');
-  ui_().alert(n.crees + ' entité(s) créée(s), ' + n.majs + ' mise(s) à jour, ' + n.groupes + ' groupe(s).');
 }
 
 /** Import manuel : collez un export HubSpot (entreprises) dans l'onglet « Import HubSpot ». */
 function importerDepuisOnglet() {
+  const n = importerDepuisOngletCore_();
+  alerte_(n.crees + ' entité(s) créée(s), ' + n.majs + ' mise(s) à jour, ' + n.groupes + ' groupe(s).');
+}
+
+function importerDepuisOngletCore_() {
   const lignes = lire_(ONGLETS.IMPORT);
   if (!lignes.length) throw new Error('Onglet « Import HubSpot » vide.');
-  const n = integrerEntreprises_(lignes.map(function (l) {
+  return integrerEntreprises_(lignes.map(function (l) {
     return { id: String(l['Record ID']), nom: l['Company name'], parent: String(l['Parent company ID'] || ''),
       adresse: [l['Street address'], l['City']].filter(String).join(', '), tel: l['Phone number'], email: l['Email'] };
   }), 'Import HubSpot');
-  ui_().alert(n.crees + ' entité(s) créée(s), ' + n.majs + ' mise(s) à jour, ' + n.groupes + ' groupe(s).');
 }
 
 /**
@@ -101,6 +109,10 @@ function integrerEntreprises_(liste, source) {
 
 /** Crée dans HubSpot une tâche de relance (e-mail à envoyer depuis HubSpot) pour chaque relance FMFP due. */
 function creerRelancesHubSpot() {
+  alerte_(creerRelancesHubSpotCore_() + ' tâche(s) de relance créée(s) dans HubSpot.');
+}
+
+function creerRelancesHubSpotCore_() {
   const auj = new Date();
   let n = 0;
   lire_(ONGLETS.FMFP).forEach(function (d) {
@@ -119,5 +131,5 @@ function creerRelancesHubSpot() {
     n++;
   });
   journal_('Relances HubSpot', n + ' tâche(s)');
-  ui_().alert(n + ' tâche(s) de relance créée(s) dans HubSpot.');
+  return n;
 }

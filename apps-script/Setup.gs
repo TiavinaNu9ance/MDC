@@ -1,6 +1,7 @@
 /** MDC ERP — Initialisation : crée ou complète tous les onglets. Peut être relancé sans perte de données. */
 function initialiserStructure() {
   const ss = ss_();
+  PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', ss.getId());
   Object.keys(COLONNES).forEach(function (nom) {
     let s = ss.getSheetByName(nom);
     if (!s) s = ss.insertSheet(nom);
@@ -39,7 +40,7 @@ function initialiserStructure() {
   const def = ss.getSheetByName('Feuille 1') || ss.getSheetByName('Sheet1');
   if (def && def.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(def);
   journal_('Initialisation', 'Structure créée / mise à jour');
-  ui_().alert('Structure MDC ERP prête. Vérifiez l\'onglet Paramètres (TVA, compteurs de départ, logo).');
+  alerte_('Structure MDC ERP prête. Vérifiez l\'onglet Paramètres (TVA, logo), puis déployez l\'application web.');
 }
 
 function liste_(valeurs) {

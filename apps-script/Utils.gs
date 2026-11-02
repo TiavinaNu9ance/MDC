@@ -1,5 +1,17 @@
 /** MDC ERP — Fonctions utilitaires (lecture/écriture des onglets). */
-function ss_() { return SpreadsheetApp.getActive(); }
+function ss_() {
+  let s = null;
+  try { s = SpreadsheetApp.getActiveSpreadsheet(); } catch (e) { s = null; }
+  if (s) return s;
+  const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+  if (!id) throw new Error('Base introuvable : lancez initialiserStructure depuis l\'éditeur Apps Script.');
+  return SpreadsheetApp.openById(id);
+}
+
+/** Message à l'utilisateur : boîte de dialogue dans la feuille, sinon journal (éditeur, application web). */
+function alerte_(msg) {
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
+}
 
 function sh_(nom) {
   const s = ss_().getSheetByName(nom);
@@ -43,12 +55,18 @@ function trouver_(nom, col, valeur) {
 }
 
 /** Paramètre (onglet Paramètres). */
+let CACHE_PARAMS_ = null;
 function param_(cle, defaut) {
-  const p = trouver_(ONGLETS.PARAMS, 'Clé', cle);
-  return p && p['Valeur'] !== '' ? p['Valeur'] : defaut;
+  if (!CACHE_PARAMS_) {
+    CACHE_PARAMS_ = {};
+    lire_(ONGLETS.PARAMS).forEach(function (p) { CACHE_PARAMS_[p['Clé']] = p['Valeur']; });
+  }
+  const v = CACHE_PARAMS_[cle];
+  return v !== undefined && v !== '' ? v : defaut;
 }
 
 function setParam_(cle, valeur) {
+  CACHE_PARAMS_ = null;
   const p = trouver_(ONGLETS.PARAMS, 'Clé', cle);
   if (p) maj_(ONGLETS.PARAMS, p._row, { 'Valeur': valeur });
   else ajouter_(ONGLETS.PARAMS, { 'Clé': cle, 'Valeur': valeur });

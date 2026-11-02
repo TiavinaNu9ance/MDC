@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1B2B5E; --navy-2: #24387a; --gold: #C89B2A; --cream: #F8F6F1;
+    --bg: #F4F5F8; --card: #FFFFFF; --text: #1d2233; --muted: #6b7286; --line: #e3e6ee;
+    --ok: #1f8a4c; --warn: #b7791f; --ko: #c0392b; --info: #2f6fd1;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; color: var(--text); background: var(--bg); }
+  h1, h2, h3 { font-family: 'Syne', 'DM Sans', sans-serif; margin: 0; }
+  a { color: var(--info); }
+  .app { display: flex; min-height: 100vh; }
+  nav { width: 232px; background: var(--navy); color: #fff; flex-shrink: 0; display: flex; flex-direction: column; }
+  nav .brand { padding: 22px 20px 18px; border-bottom: 1px solid rgba(255,255,255,.1); }
+  nav .brand h1 { font-size: 20px; letter-spacing: .5px; }
+  nav .brand small { color: var(--gold); font-weight: 700; letter-spacing: 1px; font-size: 11px; }
+  nav button { all: unset; display: flex; align-items: center; gap: 10px; padding: 11px 20px; cursor: pointer; color: #d6dbea; font-size: 14px; }
+  nav button:hover { background: var(--navy-2); color: #fff; }
+  nav button.on { background: var(--navy-2); color: #fff; border-left: 3px solid var(--gold); padding-left: 17px; }
+  nav .badge { margin-left: auto; background: var(--gold); color: #fff; border-radius: 10px; padding: 0 7px; font-size: 11px; font-weight: 700; }
+  nav .foot { margin-top: auto; padding: 14px 20px; font-size: 11px; color: #9aa3c0; }
+  main { flex: 1; padding: 24px 28px 60px; min-width: 0; }
+  .top { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .top h2 { font-size: 22px; color: var(--navy); margin-right: auto; }
+  .btn { border: 0; border-radius: 6px; padding: 8px 14px; cursor: pointer; font: inherit; font-weight: 500; background: #e8eaf1; color: var(--text); }
+  .btn:hover { filter: brightness(.96); }
+  .btn.p { background: var(--navy); color: #fff; }
+  .btn.g { background: var(--gold); color: #fff; }
+  .btn.d { background: #fbe9e7; color: var(--ko); }
+  .btn.s { padding: 5px 10px; font-size: 12.5px; }
+  .btn:disabled { opacity: .5; cursor: wait; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .kpi { background: var(--card); border-radius: 10px; padding: 16px; border: 1px solid var(--line); cursor: default; }
+  .kpi .v { font-family: 'Syne', sans-serif; font-size: 24px; color: var(--navy); margin-top: 4px; }
+  .kpi .l { color: var(--muted); font-size: 12.5px; }
+  .kpi.alert .v { color: var(--ko); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .card h3 { font-size: 15px; color: var(--navy); margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 500; padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 8px; border-bottom: 1px solid #f0f1f5; vertical-align: middle; }
+  tr.clic { cursor: pointer; }
+  tr.clic:hover td { background: #f8f9fc; }
+  .r { text-align: right; white-space: nowrap; }
+  .muted { color: var(--muted); }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+  .t-ok { background: #e3f4ea; color: var(--ok); } .t-warn { background: #fdf1dc; color: var(--warn); }
+  .t-ko { background: #fbe9e7; color: var(--ko); } .t-info { background: #e6eefb; color: var(--info); } .t-mut { background: #eef0f4; color: var(--muted); }
+  input, select, textarea { font: inherit; padding: 7px 9px; border: 1px solid #cfd4e0; border-radius: 6px; width: 100%; background: #fff; }
+  textarea { min-height: 60px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; font-weight: 500; }
+  .form { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 14px; }
+  .form .w2 { grid-column: span 2; } .form .w4 { grid-column: span 4; }
+  .search { max-width: 280px; }
+  .phases { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .phase { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #fff; }
+  .phase .n { font-family: 'Syne', sans-serif; color: var(--gold); font-size: 13px; }
+  .phase .t { font-size: 12.5px; min-height: 34px; margin: 4px 0 8px; }
+  .phase.Fait { border-color: #bfe3cc; background: #f3fbf6; } .phase.En.cours { border-color: #f1d9a7; }
+  .bar { display: flex; gap: 3px; } .bar i { width: 16px; height: 7px; border-radius: 2px; background: #e3e6ee; display: block; }
+  .bar i.Fait { background: var(--ok); } .bar i.En { background: var(--gold); } .bar i.NA { background: #b9c0d0; }
+  .kanban { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; }
+  .col { min-width: 230px; max-width: 230px; background: #eceef4; border-radius: 10px; padding: 10px; }
+  .col h4 { margin: 0 0 8px; font-size: 12.5px; color: var(--navy); }
+  .kcard { background: #fff; border-radius: 8px; padding: 10px; margin-bottom: 8px; cursor: pointer; border: 1px solid var(--line); font-size: 13px; }
+  .kcard.due { border-left: 3px solid var(--ko); }
+  .modal-bg { position: fixed; inset: 0; background: rgba(20,26,45,.45); display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; z-index: 10; }
+  .modal { background: #fff; border-radius: 12px; width: 100%; max-width: 860px; padding: 22px; }
+  .modal h3 { color: var(--navy); font-size: 18px; margin-bottom: 4px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  #toast { position: fixed; bottom: 20px; right: 20px; max-width: 420px; z-index: 20; }
+  #toast div { background: var(--navy); color: #fff; padding: 12px 16px; border-radius: 8px; margin-top: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.2); white-space: pre-wrap; }
+  #toast div.err { background: var(--ko); }
+  .loading { position: fixed; top: 0; left: 0; right: 0; height: 3px; background: var(--gold); animation: l 1s infinite; z-index: 30; }
+  @keyframes l { 0% { transform: scaleX(0); transform-origin: left } 50% { transform: scaleX(1); transform-origin: left } 51% { transform-origin: right } 100% { transform: scaleX(0); transform-origin: right } }
+  .empty { color: var(--muted); padding: 20px; text-align: center; }
+  .lines td input { padding: 5px; }
+  .tot { text-align: right; font-size: 15px; margin-top: 10px; } .tot b { color: var(--navy); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .alerte { color: var(--ko); font-size: 12.5px; }
+  @media (max-width: 900px) {
+    .app { flex-direction: column; } nav { width: 100%; flex-direction: row; overflow-x: auto; } nav .brand, nav .foot { display: none; }
+    nav button { white-space: nowrap; padding: 12px 14px; } nav button.on { border-left: 0; border-bottom: 3px solid var(--gold); padding-left: 14px; }
+    .kpis { grid-template-columns: 1fr 1fr; }
+    main { padding: 16px; } .grid2, .form, .phases { grid-template-columns: 1fr; } .form .w2, .form .w4 { grid-column: span 1; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav id="nav"></nav>
+  <main id="main"><div class="empty">Chargement de la base…</div></main>
+</div>
+<div id="modal"></div>
+<div id="toast"></div>
+<div id="loading" class="loading" style="display:none"></div>
+
+<script>
+/* ================= État & utilitaires ================= */
+const S = { d: null, vue: 'dashboard', filtre: '', sel: null, brouillon: null };
+const VUES = [
+  ['dashboard', '▦', 'Tableau de bord'], ['clients', '◉', 'Clients'], ['proformas', '◧', 'Proformas'],
+  ['factures', '€', 'Factures'], ['sessions', '✎', 'Formations'], ['fmfp', '⇆', 'Dossiers FMFP'], ['reglages', '⚙', 'Réglages']
+];
+const $ = id => document.getElementById(id);
+const esc = v => String(v === undefined || v === null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const fmt = n => Math.round(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+const dfr = s => s ? String(s).slice(0, 10).split('-').reverse().join('/') : '';
+const today = () => S.d.constantes.AUJOURDHUI;
+const by = (arr, k, v) => arr.find(x => String(x[k]) === String(v));
+const oui = v => v === true || v === 'TRUE' || v === 'Oui';
+
+function tag(txt, cls) { return `<span class="tag ${cls}">${esc(txt)}</span>`; }
+function tagStatut(s) {
+  const m = { 'Brouillon': 't-mut', 'Émise': 't-info', 'Acceptée': 't-ok', 'Refusée': 't-ko', 'Annulée': 't-mut',
+    'Payée': 't-ok', 'Partielle': 't-warn', 'Impayée': 't-ko', 'Trop-perçu': 't-warn', 'N.A. (dossier FMFP)': 't-mut' };
+  return tag(s || '—', m[s] || 't-mut');
+}
+function toast(msg, err) {
+  const el = document.createElement('div'); if (err) el.className = 'err'; el.textContent = msg;
+  $('toast').appendChild(el); setTimeout(() => el.remove(), err ? 9000 : 5000);
+}
+function busy(on) { $('loading').style.display = on ? 'block' : 'none'; document.querySelectorAll('.btn').forEach(b => b.disabled = on); }
+
+/** Appel serveur : fn(args...) → {message, data} ; rafraîchit l'écran. */
+function appel(fn, args, apres) {
+  busy(true);
+  google.script.run.withSuccessHandler(r => {
+    busy(false);
+    if (r && r.data) S.d = r.data;
+    if (r && r.message) toast(r.message);
+    if (apres) apres(r);
+    rendre();
+    if (r && r.url) window.open(r.url, '_blank');
+  }).withFailureHandler(e => { busy(false); toast('Erreur : ' + (e.message || e), true); })[fn].apply(null, args || []);
+}
+function charger() {
+  busy(true);
+  google.script.run.withSuccessHandler(d => { busy(false); S.d = d; rendre(); })
+    .withFailureHandler(e => { busy(false); $('main').innerHTML = `<div class="card alerte">Impossible de charger la base : ${esc(e.message || e)}</div>`; })
+    .apiCharger();
+}
+function aller(v) { S.vue = v; S.filtre = ''; S.sel = null; fermer(); rendre(); window.scrollTo(0, 0); }
+function ouvrir(html) { $('modal').innerHTML = `<div class="modal-bg" onclick="if(event.target===this)fermer()"><div class="modal">${html}</div></div>`; }
+function fermer() { $('modal').innerHTML = ''; }
+
+/* ================= Calculs ================= */
+function factActives() { return S.d.FACTURES.filter(f => f['Statut'] !== 'Annulée'); }
+function relancesDues() { return S.d.FMFP.filter(x => x['Prochaine relance'] && x['Prochaine relance'] <= today() && !/Clôturé/.test(x['Étape'])); }
+function nomGroupe(id) { const g = by(S.d.GROUPES, 'ID Groupe', id); return g ? g['Nom du groupe'] : ''; }
+function facturesDe(numPf) { return S.d.FACTURES.filter(f => f['N° Proforma'] === numPf && numPf); }
+function lignesDe(id) { return S.d.LIGNES.filter(l => l['ID Document'] === id).sort((a, b) => a['Ordre'] - b['Ordre']); }
+
+/* ================= Rendu ================= */
+function rendre() {
+  if (!S.d) return;
+  const nb = { proformas: S.d.PROFORMAS.filter(p => p['Statut'] === 'Émise').length, fmfp: relancesDues().length,
+    factures: factActives().filter(f => Number(f['Reste à payer']) > 0).length,
+    sessions: S.d.SESSIONS.filter(s => s['Alerte']).length };
+  $('nav').innerHTML = `<div class="brand"><h1>MDC ERP</h1><small>MADAGASCAR DATA CAMP</small></div>` +
+    VUES.map(v => `<button class="${S.vue.split('-')[0] === v[0] ? 'on' : ''}" onclick="aller('${v[0]}')">
+      <span>${v[1]}</span>${v[2]}${nb[v[0]] ? `<span class="badge">${nb[v[0]]}</span>` : ''}</button>`).join('') +
+    `<div class="foot">${esc(S.d.constantes.UTILISATEUR)}<br><a href="#" style="color:#c9d1ea" onclick="charger();return false">↻ Actualiser</a></div>`;
+  const r = { dashboard: vDashboard, clients: vClients, proformas: vProformas, 'proformas-new': vNouvelleProforma,
+    factures: vFactures, sessions: vSessions, 'sessions-detail': vSession, fmfp: vFmfp, reglages: vReglages }[S.vue];
+  $('main').innerHTML = r();
+}
+
+/* ---------- Tableau de bord ---------- */
+function vDashboard() {
+  const an = today().slice(0, 4);
+  const fa = factActives().filter(f => f['Compte dans encaissements'] === 'Oui');
+  const facture = fa.filter(f => String(f['Date']).slice(0, 4) === an).reduce((s, f) => s + Number(f['Total TTC'] || 0), 0);
+  const encaisse = S.d.PAIEMENTS.filter(p => String(p['Date']).slice(0, 4) === an).reduce((s, p) => s + Number(p['Montant'] || 0), 0);
+  const impayees = fa.filter(f => Number(f['Reste à payer']) > 0);
+  const reste = impayees.reduce((s, f) => s + Number(f['Reste à payer']), 0);
+  const pfAtt = S.d.PROFORMAS.filter(p => p['Statut'] === 'Émise');
+  const pfVal = pfAtt.reduce((s, p) => s + Number(p['Total TTC'] || 0), 0);
+  const enCours = S.d.SESSIONS.filter(s => s['Phase actuelle'] !== 'Terminée');
+  const alertes = S.d.SESSIONS.filter(s => s['Alerte']);
+  const rel = relancesDues();
+  const avenir = S.d.SESSIONS.filter(s => s['Date début'] && s['Date début'] >= today()).sort((a, b) => a['Date début'] < b['Date début'] ? -1 : 1).slice(0, 8);
+  return `<div class="top"><h2>Tableau de bord</h2><button class="btn p" onclick="nouvelleProforma()">+ Nouvelle proforma</button></div>
+  <div class="kpis">
+    <div class="kpi"><div class="l">Facturé ${an} (TTC)</div><div class="v">${fmt(facture)}</div><div class="l">hors factures 100 % FMFP</div></div>
+    <div class="kpi"><div class="l">Encaissé ${an}</div><div class="v">${fmt(encaisse)}</div></div>
+    <div class="kpi ${reste ? 'alert' : ''}"><div class="l">Reste à encaisser</div><div class="v">${fmt(reste)}</div><div class="l">${impayees.length} facture(s)</div></div>
+    <div class="kpi"><div class="l">Proformas en attente</div><div class="v">${pfAtt.length}</div><div class="l">${fmt(pfVal)} Ar</div></div>
+    <div class="kpi"><div class="l">Sessions en cours</div><div class="v">${enCours.length}</div></div>
+    <div class="kpi ${alertes.length ? 'alert' : ''}"><div class="l">Alertes 6 phases</div><div class="v">${alertes.length}</div></div>
+    <div class="kpi ${rel.length ? 'alert' : ''}"><div class="l">Relances FMFP dues</div><div class="v">${rel.length}</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>Factures à encaisser</h3>${impayees.length ? `<table><tr><th>N°</th><th>Client</th><th>Type</th><th class="r">Reste</th></tr>
+      ${impayees.map(f => `<tr class="clic" onclick="ficheFacture('${f['ID']}')"><td>${esc(f['N°'])}</td><td>${esc(f['Raison sociale'])}</td><td>${esc(f['Type'])}</td><td class="r">${fmt(f['Reste à payer'])}</td></tr>`).join('')}</table>` : '<div class="empty">Rien à encaisser.</div>'}</div>
+    <div class="card"><h3>Prochaines formations</h3>${avenir.length ? `<table><tr><th>Date</th><th>Client</th><th>Formation</th><th>Phase</th></tr>
+      ${avenir.map(s => `<tr class="clic" onclick="ficheSession('${s['ID Session']}')"><td>${dfr(s['Date début'])}</td><td>${esc(s['Raison sociale'])}</td><td>${esc(s['Intitulé'])}</td><td>${barre(s)}</td></tr>`).join('')}</table>` : '<div class="empty">Aucune date planifiée.</div>'}</div>
+    <div class="card"><h3>Alertes sur les 6 phases MDC</h3>${alertes.length ? alertes.map(s => `<div class="clic" style="padding:6px 0;cursor:pointer" onclick="ficheSession('${s['ID Session']}')"><b>${esc(s['ID Session'])}</b> ${esc(s['Raison sociale'])}<div class="alerte">${esc(s['Alerte'])}</div></div>`).join('') : '<div class="empty">Aucune alerte.</div>'}</div>
+    <div class="card"><h3>Relances FMFP dues</h3>${rel.length ? rel.map(x => `<div style="padding:6px 0;cursor:pointer" onclick="ficheFmfp(${x._row})"><b>${esc(x['Raison sociale'])}</b> · ${esc(x['ID Session'])}<div class="muted">${esc(x['Étape'])} — relance du ${dfr(x['Prochaine relance'])}</div></div>`).join('') + `<div class="actions"><button class="btn g s" onclick="appel('apiRelancesHubSpot')">Créer les tâches dans HubSpot</button></div>` : '<div class="empty">Aucune relance due.</div>'}</div>
+  </div>`;
+}
+
+/* ---------- Clients ---------- */
+function vClients() {
+  const f = S.filtre.toLowerCase();
+  const rows = S.d.ENTITES.filter(e => !f || (e['Raison sociale'] + ' ' + nomGroupe(e['ID Groupe']) + ' ' + e['NIF']).toLowerCase().includes(f))
+    .sort((a, b) => String(a['Raison sociale']).localeCompare(String(b['Raison sociale'])));
+  return `<div class="top"><h2>Clients</h2>
+    <input class="search" placeholder="Rechercher…" value="${esc(S.filtre)}" oninput="S.filtre=this.value;majListe()">
+    <button class="btn" onclick="ficheGroupe()">+ Groupe</button><button class="btn p" onclick="ficheEntite()">+ Entité</button>
+    <button class="btn g" onclick="${S.d.constantes.HUBSPOT ? "appel('apiSyncHubSpot')" : 'cleHubSpot()'}">↻ HubSpot</button></div>
+  <div class="card" id="liste">${tableClients(rows)}</div>`;
+}
+function tableClients(rows) {
+  return `<div class="muted" style="margin-bottom:8px">${rows.length} entité(s) · ${S.d.GROUPES.length} groupe(s)</div><table>
+    <tr><th>Raison sociale</th><th>Groupe</th><th>NIF</th><th>STAT</th><th>Contact</th><th>Docs</th></tr>
+    ${rows.map(e => { const n = S.d.PROFORMAS.filter(p => p['ID Entité'] === e['ID Entité']).length;
+      return `<tr class="clic" onclick="ficheEntite('${e['ID Entité']}')"><td><b>${esc(e['Raison sociale'])}</b>${e['HubSpot ID'] ? ' <span class="muted">·HS</span>' : ''}</td>
+      <td>${esc(nomGroupe(e['ID Groupe']))}</td><td>${esc(e['NIF'])}</td><td>${esc(e['STAT'])}</td><td>${esc(e['Contact principal'])}</td><td>${n || ''}</td></tr>`; }).join('')}</table>`;
+}
+function majListe() {
+  if (S.vue === 'clients') {
+    const f = S.filtre.toLowerCase();
+    $('liste').innerHTML = tableClients(S.d.ENTITES.filter(e => !f || (e['Raison sociale'] + ' ' + nomGroupe(e['ID Groupe']) + ' ' + e['NIF']).toLowerCase().includes(f))
+      .sort((a, b) => String(a['Raison sociale']).localeCompare(String(b['Raison sociale']))));
+  } else rendre();
+}
+function ficheEntite(id) {
+  const e = id ? by(S.d.ENTITES, 'ID Entité', id) : {};
+  const docs = id ? S.d.PROFORMAS.filter(p => p['ID Entité'] === id) : [];
+  const ch = (k, lab, cls) => `<div class="${cls || ''}"><label>${lab}</label><input data-k="${k}" value="${esc(e[k])}"></div>`;
+  ouvrir(`<h3>${id ? esc(e['Raison sociale']) : 'Nouvelle entité'}</h3><div class="muted">${id ? esc(id) + (e['HubSpot ID'] ? ' · HubSpot ' + esc(e['HubSpot ID']) : '') + ' · ' + esc(e['Source']) : ''}</div>
+    <div class="form" id="f">${ch('Raison sociale', 'Raison sociale', 'w2')}
+      <div class="w2"><label>Groupe</label><select data-k="ID Groupe"><option value="">—</option>${S.d.GROUPES.slice().sort((a, b) => String(a['Nom du groupe']).localeCompare(String(b['Nom du groupe']))).map(g => `<option value="${g['ID Groupe']}" ${g['ID Groupe'] === e['ID Groupe'] ? 'selected' : ''}>${esc(g['Nom du groupe'])}</option>`).join('')}</select></div>
+      ${ch('Adresse', 'Adresse', 'w4')}${ch('Email', 'Email')}${ch('Téléphone', 'Téléphone')}${ch('NIF', 'NIF')}${ch('STAT', 'STAT')}${ch('Contact principal', 'Contact principal', 'w2')}</div>
+    ${docs.length ? `<h3 style="font-size:14px;margin-top:18px">Proformas</h3><table>${docs.map(p => `<tr class="clic" onclick="ficheProforma('${p['ID']}')"><td>${esc(p['N°'] || p['ID'])}</td><td>${dfr(p['Date'])}</td><td>${esc(p['Objet'])}</td><td class="r">${fmt(p['Total TTC'])}</td><td>${tagStatut(p['Statut'])}</td></tr>`).join('')}</table>` : ''}
+    <div class="actions"><button class="btn p" onclick="enregistrer('Entités', ${id ? e._row : 0})">Enregistrer</button>
+    ${id ? `<button class="btn g" onclick="nouvelleProforma('${id}')">+ Proforma pour ce client</button>` : ''}<button class="btn" onclick="fermer()">Fermer</button></div>`);
+}
+function ficheGroupe() {
+  ouvrir(`<h3>Nouveau groupe</h3><div class="form" id="f"><div class="w2"><label>Nom du groupe</label><input data-k="Nom du groupe"></div><div class="w2"><label>Notes</label><input data-k="Notes"></div></div>
+    <div class="actions"><button class="btn p" onclick="enregistrer('Groupes', 0)">Créer</button><button class="btn" onclick="fermer()">Annuler</button></div>`);
+}
+function lireForm(rootId) {
+  const o = {};
+  document.querySelectorAll(`#${rootId} [data-k]`).forEach(i => { o[i.dataset.k] = i.type === 'checkbox' ? i.checked : i.value; });
+  return o;
+}
+function enregistrer(onglet, ligne, rootId) { appel('apiEnregistrer', [onglet, ligne, lireForm(rootId || 'f')], () => fermer()); }
+function cleHubSpot() {
+  ouvrir(`<h3>Clé HubSpot</h3><p class="muted">Collez le jeton de l'application privée HubSpot (commence par « pat- »). Il est stocké dans le script, jamais dans la base.</p>
+    <input id="jeton" placeholder="pat-…"><div class="actions"><button class="btn p" onclick="appel('apiCleHubSpot',[$('jeton').value],()=>fermer())">Enregistrer</button>
+    <button class="btn" onclick="appel('apiImportHubSpot',[],()=>fermer())">Importer depuis l'onglet « Import HubSpot »</button><button class="btn" onclick="fermer()">Annuler</button></div>`);
+}
+
+/* ---------- Proformas ---------- */
+function vProformas() {
+  const f = S.filtre;
+  const rows = S.d.PROFORMAS.filter(p => !f || p['Statut'] === f).slice().reverse();
+  return `<div class="top"><h2>Proformas</h2>
+    <select class="search" onchange="S.filtre=this.value;rendre()"><option value="">Tous les statuts</option>${S.d.constantes.STATUT_PROFORMA.map(s => `<option ${s === f ? 'selected' : ''}>${s}</option>`).join('')}</select>
+    <button class="btn p" onclick="nouvelleProforma()">+ Nouvelle proforma</button></div>
+  <div class="card">${rows.length ? `<table><tr><th>N°</th><th>Date</th><th>Client</th><th>Objet</th><th class="r">Total TTC</th><th>Statut</th><th>Facturé</th><th>Session</th></tr>
+    ${rows.map(p => { const fs = facturesDe(p['N°']).filter(x => x['Statut'] !== 'Annulée' && x['Compte dans encaissements'] === 'Oui');
+      const pct = fs.reduce((s, x) => s + Number(x['%'] || 0), 0);
+      return `<tr class="clic" onclick="ficheProforma('${p['ID']}')"><td><b>${esc(p['N°'] || p['ID'])}</b></td><td>${dfr(p['Date'])}</td><td>${esc(p['Raison sociale'])}</td><td>${esc(p['Objet'])}</td>
+      <td class="r">${fmt(p['Total TTC'])}</td><td>${tagStatut(p['Statut'])}</td><td>${pct ? pct + ' %' : ''}</td><td>${esc(p['ID Session'])}</td></tr>`; }).join('')}</table>` : '<div class="empty">Aucune proforma.</div>'}</div>`;
+}
+function ficheProforma(id) {
+  const p = by(S.d.PROFORMAS, 'ID', id);
+  const ls = lignesDe(id);
+  const fs = facturesDe(p['N°']);
+  const actif = ['Émise', 'Acceptée'].includes(p['Statut']);
+  const dejaPct = fs.filter(x => x['Statut'] !== 'Annulée' && x['Compte dans encaissements'] === 'Oui').reduce((s, x) => s + Number(x['%'] || 0), 0);
+  const aFmfp = fs.some(x => x['Statut'] !== 'Annulée' && /FMFP/.test(x['Type']));
+  const sess = p['ID Session'] ? by(S.d.SESSIONS, 'ID Session', p['ID Session']) : null;
+  ouvrir(`<h3>${p['N°'] ? 'Proforma ' + esc(p['N°']) : 'Brouillon ' + esc(id)} ${tagStatut(p['Statut'])}</h3>
+    <div class="muted">${esc(p['Raison sociale'])} · ${dfr(p['Date'])} · contact : ${esc(p['Contact client']) || '—'}${p['Lieu'] ? ' · ' + esc(p['Lieu']) : ''}</div>
+    ${p['Objet'] ? `<p><b>Objet :</b> ${esc(p['Objet'])}</p>` : ''}
+    <table style="margin-top:10px"><tr><th>Désignation</th><th>Durée</th><th class="r">Qté</th><th class="r">PU HT</th><th class="r">Montant HT</th></tr>
+      ${ls.map(l => `<tr><td>${esc(l['Désignation'])}</td><td>${l['Durée'] ? esc(l['Durée']) + ' h' : ''}</td><td class="r">${esc(l['Quantité'])}</td><td class="r">${fmt(l['Prix unitaire HT'])}</td><td class="r">${fmt(l['Montant HT'])}</td></tr>`).join('')}</table>
+    <div class="tot">HT <b>${fmt(p['Total HT'])}</b>${S.d.constantes.TVA_APPLICABLE ? ` · TVA <b>${fmt(p['TVA'])}</b> · TTC <b>${fmt(p['Total TTC'])}</b>` : ''} Ar</div>
+    ${fs.length ? `<h3 style="font-size:14px;margin-top:16px">Factures liées</h3><table>${fs.map(f => `<tr class="clic" onclick="ficheFacture('${f['ID']}')"><td>${esc(f['N°'])}</td><td>${esc(f['Type'])}</td><td class="r">${fmt(f['Total TTC'])}</td><td>${f['Statut'] === 'Annulée' ? tagStatut('Annulée') : tagStatut(f['Statut paiement'])}</td></tr>`).join('')}</table>` : ''}
+    ${sess ? `<p>Session : <a href="#" onclick="ficheSession('${sess['ID Session']}');return false">${esc(sess['ID Session'])}</a> ${sess['FMFP'] === 'Oui' ? tag('FMFP', 't-info') : ''}</p>` : ''}
+    <div class="actions">
+      ${p['Statut'] === 'Brouillon' ? `<button class="btn p" onclick="appel('apiEmettre',['${id}'],()=>ficheProforma('${id}'))">Émettre (n° + PDF)</button>` : ''}
+      ${p['Statut'] === 'Émise' ? `<button class="btn" onclick="appel('apiStatutProforma',['${id}','Acceptée'],()=>ficheProforma('${id}'))">Marquer acceptée</button><button class="btn" onclick="appel('apiStatutProforma',['${id}','Refusée'],()=>fermer())">Marquer refusée</button>` : ''}
+      ${actif && !p['ID Session'] ? `<button class="btn g" onclick="creerSession('${id}')">Créer la session de formation</button>` : ''}
+      ${actif && !aFmfp ? `<button class="btn" onclick="facturer('${id}','FMFP_100')">Facture 100 % FMFP</button>` : ''}
+      ${actif && dejaPct === 0 ? `<button class="btn" onclick="facturer('${id}','ACOMPTE')">Acompte ${S.d.constantes.POURCENT_ACOMPTE} %</button><button class="btn" onclick="facturer('${id}','TOTALE')">Facture totale</button>` : ''}
+      ${actif && dejaPct > 0 && dejaPct < 100 ? `<button class="btn" onclick="facturer('${id}','SOLDE')">Solde ${100 - dejaPct} %</button>` : ''}
+      ${p['Lien PDF'] ? `<a class="btn" href="${esc(p['Lien PDF'])}" target="_blank">PDF</a><button class="btn" onclick="appel('apiRegenererPdf',['PF','${id}'])">Régénérer le PDF</button>` : ''}
+      ${p['Statut'] !== 'Annulée' ? `<button class="btn d" onclick="annuler('PF','${id}','${esc(p['N°'] || id)}')">Annuler</button>` : ''}
+      <button class="btn" onclick="fermer()">Fermer</button></div>`);
+}
+function facturer(id, type) {
+  const lib = { FMFP_100: 'la facture 100 % (dossier FMFP)', ACOMPTE: "la facture d'acompte", SOLDE: 'la facture de solde', TOTALE: 'la facture totale' }[type];
+  if (confirm('Émettre ' + lib + ' ? Un numéro officiel sera attribué.')) appel('apiFacturer', [id, type], () => ficheProforma(id));
+}
+function annuler(type, id, num) {
+  if (confirm('Annuler ' + num + ' ? Le numéro reste consommé et ne sera jamais réutilisé.')) appel('apiAnnuler', [type, id], () => fermer());
+}
+function creerSession(id) {
+  ouvrir(`<h3>Créer la session</h3><p>Cette formation est-elle financée via le <b>FMFP</b> ?</p>
+    <div class="actions"><button class="btn p" onclick="appel('apiCreerSession',['${id}',true],r=>ficheSession(r.id))">Oui, avec dossier FMFP</button>
+    <button class="btn" onclick="appel('apiCreerSession',['${id}',false],r=>ficheSession(r.id))">Non</button><button class="btn" onclick="ficheProforma('${id}')">Retour</button></div>`);
+}
+
+/* ---------- Nouvelle proforma ---------- */
+function nouvelleProforma(idEntite) {
+  const e = idEntite ? by(S.d.ENTITES, 'ID Entité', idEntite) : null;
+  S.brouillon = { idEntite: idEntite || '', date: today(), validite: S.d.constantes.VALIDITE, contact: e ? e['Contact principal'] : '', objet: '', lieu: '', lignes: [{}] };
+  fermer(); S.vue = 'proformas-new'; rendre();
+}
+function vNouvelleProforma() {
+  const b = S.brouillon;
+  const cat = S.d.CATALOGUE.filter(c => oui(c['Actif']) || c['Actif'] === '');
+  const ent = S.d.ENTITES.slice().sort((a, c) => String(a['Raison sociale']).localeCompare(String(c['Raison sociale'])));
+  const ht = b.lignes.reduce((s, l) => s + montant(l), 0), tva = Math.round(ht * S.d.constantes.TVA);
+  return `<div class="top"><h2>Nouvelle proforma</h2><button class="btn" onclick="aller('proformas')">Annuler</button></div>
+  <div class="card"><div class="form">
+    <div class="w2"><label>Entité facturée</label><select onchange="S.brouillon.idEntite=this.value;const e=S.d.ENTITES.find(x=>x['ID Entité']===this.value);S.brouillon.contact=e?e['Contact principal']:'';rendre()">
+      <option value="">— choisir —</option>${ent.map(e => `<option value="${e['ID Entité']}" ${e['ID Entité'] === b.idEntite ? 'selected' : ''}>${esc(e['Raison sociale'])}${nomGroupe(e['ID Groupe']) && nomGroupe(e['ID Groupe']) !== e['Raison sociale'] ? ' (groupe ' + esc(nomGroupe(e['ID Groupe'])) + ')' : ''}</option>`).join('')}</select></div>
+    <div><label>Date</label><input type="date" value="${b.date}" onchange="S.brouillon.date=this.value"></div>
+    <div><label>Validité (jours)</label><input type="number" value="${b.validite}" onchange="S.brouillon.validite=this.value"></div>
+    <div class="w2"><label>Contact client</label><input value="${esc(b.contact)}" onchange="S.brouillon.contact=this.value"></div>
+    <div class="w2"><label>Lieu de formation</label><input value="${esc(b.lieu)}" onchange="S.brouillon.lieu=this.value"></div>
+    <div class="w4"><label>Objet</label><input value="${esc(b.objet)}" placeholder="Ex. Formation Excel Perfectionnement — 10 participants" onchange="S.brouillon.objet=this.value"></div>
+  </div></div>
+  <div class="card lines"><h3>Lignes</h3><table><tr><th style="width:32%">Article du catalogue</th><th>Désignation</th><th style="width:8%">Durée (h)</th><th style="width:8%">Qté</th><th style="width:12%">PU HT</th><th class="r" style="width:11%">Montant</th><th></th></tr>
+    ${b.lignes.map((l, i) => `<tr><td><select onchange="choisirArticle(${i},this.value)"><option value="">— libre —</option>${cat.map(c => `<option value="${esc(c['Code'])}" ${c['Code'] === l.code ? 'selected' : ''}>${esc(c['Domaine'])} · ${esc(c['Désignation'])}${c['Prix unitaire HT'] ? ' · ' + fmt(c['Prix unitaire HT']) : ''}</option>`).join('')}</select></td>
+      <td><input value="${esc(l.designation)}" onchange="S.brouillon.lignes[${i}].designation=this.value"></td>
+      <td><input type="number" value="${esc(l.duree)}" onchange="S.brouillon.lignes[${i}].duree=this.value"></td>
+      <td><input type="number" min="0" value="${l.quantite === undefined ? 1 : esc(l.quantite)}" onchange="S.brouillon.lignes[${i}].quantite=Number(this.value);rendre()"></td>
+      <td><input type="number" min="0" value="${esc(l.pu)}" onchange="S.brouillon.lignes[${i}].pu=Number(this.value);rendre()"></td>
+      <td class="r">${fmt(montant(l))}</td><td><button class="btn s" onclick="S.brouillon.lignes.splice(${i},1);rendre()">×</button></td></tr>`).join('')}</table>
+    <button class="btn s" style="margin-top:8px" onclick="S.brouillon.lignes.push({});rendre()">+ Ligne</button>
+    <div class="tot">Total HT <b>${fmt(ht)}</b>${S.d.constantes.TVA_APPLICABLE ? ` · TVA <b>${fmt(tva)}</b> · TTC <b>${fmt(ht + tva)}</b>` : ''} Ar</div>
+    <div class="hint">Frais annexes : Location PC, Déplacement formateur, Fournitures, Restauration, Salle, Remise (montant saisi en positif, déduit automatiquement).</div></div>
+  <div class="actions"><button class="btn" onclick="envoyerProforma(false)">Enregistrer en brouillon</button><button class="btn p" onclick="envoyerProforma(true)">Créer et émettre (n° + PDF)</button></div>`;
+}
+function montant(l) { const m = (Number(l.quantite === undefined ? 1 : l.quantite) || 0) * (Number(l.pu) || 0); return l.code === 'DIV-REMISE' ? -Math.abs(m) : m; }
+function choisirArticle(i, code) {
+  const c = by(S.d.CATALOGUE, 'Code', code), l = S.brouillon.lignes[i];
+  l.code = code;
+  if (c) { l.designation = c['Désignation']; l.domaine = c['Domaine']; l.duree = c['Durée (h)']; l.pu = Number(c['Prix unitaire HT']) || 0; }
+  rendre();
+}
+function envoyerProforma(emettre) {
+  const b = S.brouillon;
+  const data = Object.assign({}, b, { emettre: emettre, lignes: b.lignes.filter(l => l.designation).map(l => Object.assign({ quantite: 1, domaine: 'Divers' }, l)) });
+  if (!data.idEntite) return toast('Choisissez une entité.', true);
+  if (!data.lignes.length) return toast('Ajoutez au moins une ligne.', true);
+  if (emettre && !confirm('Émettre la proforma ? Un numéro officiel sera attribué.')) return;
+  appel('apiCreerProforma', [data], r => { S.vue = 'proformas'; setTimeout(() => ficheProforma(r.id), 0); });
+}
+
+/* ---------- Factures ---------- */
+function vFactures() {
+  const f = S.filtre;
+  const rows = S.d.FACTURES.filter(x => !f || x['Statut paiement'] === f || (f === 'Annulée' && x['Statut'] === 'Annulée')).slice().reverse();
+  return `<div class="top"><h2>Factures</h2><select class="search" onchange="S.filtre=this.value;rendre()"><option value="">Toutes</option>
+    ${['Impayée', 'Partielle', 'Payée', 'N.A. (dossier FMFP)', 'Annulée'].map(s => `<option ${s === f ? 'selected' : ''}>${s}</option>`).join('')}</select>
+    ${S.d.constantes.DOSSIER_PDF ? `<a class="btn" target="_blank" href="${S.d.constantes.DOSSIER_PDF}">Dossier des PDF</a>` : ''}</div>
+  <div class="card">${rows.length ? `<table><tr><th>N°</th><th>Date</th><th>Type</th><th>Client</th><th>Proforma</th><th class="r">TTC</th><th class="r">Payé</th><th class="r">Reste</th><th>Paiement</th></tr>
+    ${rows.map(x => `<tr class="clic" onclick="ficheFacture('${x['ID']}')"><td><b>${esc(x['N°'])}</b></td><td>${dfr(x['Date'])}</td><td>${esc(x['Type'])}</td><td>${esc(x['Raison sociale'])}</td><td>${esc(x['N° Proforma'])}</td>
+      <td class="r">${fmt(x['Total TTC'])}</td><td class="r">${fmt(x['Montant payé'])}</td><td class="r">${fmt(x['Reste à payer'])}</td><td>${x['Statut'] === 'Annulée' ? tagStatut('Annulée') : tagStatut(x['Statut paiement'])}</td></tr>`).join('')}</table>` : '<div class="empty">Aucune facture. Les factures se créent depuis une proforma.</div>'}</div>`;
+}
+function ficheFacture(id) {
+  const f = by(S.d.FACTURES, 'ID', id);
+  const pays = S.d.PAIEMENTS.filter(p => p['N° Facture'] === f['N°']);
+  const peutPayer = f['Compte dans encaissements'] === 'Oui' && f['Statut'] !== 'Annulée';
+  const pf = by(S.d.PROFORMAS, 'N°', f['N° Proforma']);
+  ouvrir(`<h3>Facture ${esc(f['N°'])} ${f['Statut'] === 'Annulée' ? tagStatut('Annulée') : tagStatut(f['Statut paiement'])}</h3>
+    <div class="muted">${esc(f['Type'])} · ${esc(f['Raison sociale'])} · ${dfr(f['Date'])} · proforma ${pf ? `<a href="#" onclick="ficheProforma('${pf['ID']}');return false">${esc(f['N° Proforma'])}</a>` : esc(f['N° Proforma'])}</div>
+    <div class="kpis" style="margin-top:14px"><div class="kpi"><div class="l">Total TTC</div><div class="v">${fmt(f['Total TTC'])}</div></div>
+      <div class="kpi"><div class="l">Payé</div><div class="v">${fmt(f['Montant payé'])}</div></div><div class="kpi"><div class="l">Reste</div><div class="v">${fmt(f['Reste à payer'])}</div></div></div>
+    ${pays.length ? `<h3 style="font-size:14px">Paiements</h3><table>${pays.map(p => `<tr><td>${dfr(p['Date'])}</td><td>${esc(p['Mode'])}</td><td>${esc(p['Référence'])}</td><td class="r">${fmt(p['Montant'])}</td></tr>`).join('')}</table>` : ''}
+    ${peutPayer && Number(f['Reste à payer']) > 0 ? `<div class="card" style="margin-top:14px"><h3>Enregistrer un paiement</h3><div class="form">
+      <div><label>Date</label><input type="date" id="pd" value="${today()}"></div><div><label>Montant</label><input type="number" id="pm" value="${Number(f['Reste à payer'])}"></div>
+      <div><label>Mode</label><select id="po">${S.d.constantes.MODES_PAIEMENT.map(m => `<option>${m}</option>`).join('')}</select></div><div><label>Référence</label><input id="pr" placeholder="OV, n° chèque…"></div></div>
+      <div class="actions"><button class="btn p" onclick="appel('apiPaiement',['${esc(f['N°'])}',$('pm').value,$('po').value,$('pr').value,$('pd').value],()=>ficheFacture('${id}'))">Enregistrer</button></div></div>` : ''}
+    ${!peutPayer && f['Statut'] !== 'Annulée' ? '<p class="hint">Facture 100 % du dossier FMFP : les paiements se saisissent sur les factures d\'acompte et de solde.</p>' : ''}
+    <div class="actions">${f['Lien PDF'] ? `<a class="btn" href="${esc(f['Lien PDF'])}" target="_blank">PDF</a><button class="btn" onclick="appel('apiRegenererPdf',['DE','${id}'])">Régénérer le PDF</button>` : ''}
+      ${f['Statut'] !== 'Annulée' ? `<button class="btn d" onclick="annuler('DE','${id}','${esc(f['N°'])}')">Annuler</button>` : ''}<button class="btn" onclick="fermer()">Fermer</button></div>`);
+}
+
+/* ---------- Formations ---------- */
+function barre(s) {
+  return `<span class="bar" title="${esc(s['Phase actuelle'])}">${S.d.constantes.PHASES.map(p => { const v = s[p] || 'À faire';
+    return `<i class="${v === 'Fait' ? 'Fait' : v === 'En cours' ? 'En' : v === 'N.A.' ? 'NA' : ''}"></i>`; }).join('')}</span>`;
+}
+function vSessions() {
+  const f = S.filtre;
+  const rows = S.d.SESSIONS.filter(s => !f || (f === 'cours' ? s['Phase actuelle'] !== 'Terminée' : f === 'alerte' ? s['Alerte'] : s['Phase actuelle'] === 'Terminée')).slice().reverse();
+  return `<div class="top"><h2>Formations</h2><select class="search" onchange="S.filtre=this.value;rendre()"><option value="">Toutes</option>
+    <option value="cours" ${f === 'cours' ? 'selected' : ''}>En cours</option><option value="alerte" ${f === 'alerte' ? 'selected' : ''}>Avec alerte</option><option value="fin" ${f === 'fin' ? 'selected' : ''}>Terminées</option></select>
+    <button class="btn" onclick="appel('apiControlerPhases')">Contrôler les 6 phases</button></div>
+  <div class="card">${rows.length ? `<table><tr><th>Session</th><th>Client</th><th>Formation</th><th>Dates</th><th>Formateur(s)</th><th>6 phases</th><th>FMFP</th><th></th></tr>
+    ${rows.map(s => `<tr class="clic" onclick="ficheSession('${s['ID Session']}')"><td><b>${esc(s['ID Session'])}</b></td><td>${esc(s['Raison sociale'])}</td><td>${esc(s['Intitulé'])}</td>
+      <td>${dfr(s['Date début'])}${s['Date fin'] ? ' → ' + dfr(s['Date fin']) : ''}</td><td>${esc(s['Formateur(s)'])}</td><td>${barre(s)}</td><td>${s['FMFP'] === 'Oui' ? tag('FMFP', 't-info') : ''}</td>
+      <td>${s['Alerte'] ? tag('!', 't-ko') : ''}</td></tr>`).join('')}</table>` : '<div class="empty">Aucune session. Une session se crée depuis une proforma émise.</div>'}</div>`;
+}
+function ficheSession(id) { fermer(); S.sel = id; S.vue = 'sessions-detail'; rendre(); window.scrollTo(0, 0); }
+function vSession() {
+  const s = by(S.d.SESSIONS, 'ID Session', S.sel);
+  if (!s) return '<div class="empty">Session introuvable.</div>';
+  const C = S.d.constantes;
+  const parts = S.d.PARTICIPANTS.filter(p => p['ID Session'] === s['ID Session']);
+  const fm = S.d.FMFP.find(x => x['ID Session'] === s['ID Session']);
+  const pf = by(S.d.PROFORMAS, 'N°', s['N° Proforma']);
+  const choisis = String(s['Formateur(s)'] || '').split(',').map(x => x.trim()).filter(String);
+  const formateurs = S.d.FORMATEURS.filter(t => oui(t['Actif']) || t['Actif'] === '');
+  const titres = ['Analyse des besoins', 'Test de niveau / positionnement', 'Réunion de validation des niveaux', 'Suivi pendant la formation', 'Évaluation finale', 'Clôture et compte rendu'];
+  return `<div class="top"><h2>${esc(s['ID Session'])} · ${esc(s['Raison sociale'])}</h2>
+    ${s['FMFP'] === 'Oui' && fm ? `<button class="btn" onclick="ficheFmfp(${fm._row})">Dossier FMFP</button>` : ''}
+    ${pf ? `<button class="btn" onclick="ficheProforma('${pf['ID']}')">Proforma ${esc(pf['N°'])}</button>` : ''}<button class="btn" onclick="aller('sessions')">← Formations</button></div>
+  ${s['Alerte'] ? `<div class="card alerte"><b>Alertes :</b> ${esc(s['Alerte'])}</div>` : ''}
+  <div class="card"><h3>Les 6 phases MDC</h3><div class="phases" id="ph">${C.PHASES.map((p, i) => { const v = s[p] || 'À faire';
+    return `<div class="phase ${v.replace('.', '')}"><div class="n">P${i + 1}</div><div class="t">${titres[i]}</div>
+    <select data-k="${esc(p)}">${C.STATUT_PHASE.map(x => `<option ${x === v ? 'selected' : ''}>${x}</option>`).join('')}</select></div>`; }).join('')}</div>
+    <div class="actions"><button class="btn p" onclick="enregistrer('Sessions', ${s._row}, 'ph')">Enregistrer les phases</button><span class="hint">Phase actuelle : <b>${esc(s['Phase actuelle'])}</b></span></div></div>
+  <div class="card"><h3>Informations</h3><div class="form" id="inf">
+    <div class="w2"><label>Intitulé</label><input data-k="Intitulé" value="${esc(s['Intitulé'])}"></div>
+    <div><label>Date début</label><input type="date" data-k="Date début" value="${esc(s['Date début'])}"></div>
+    <div><label>Date fin</label><input type="date" data-k="Date fin" value="${esc(s['Date fin'])}"></div>
+    <div class="w2"><label>Lieu</label><input data-k="Lieu" value="${esc(s['Lieu'])}"></div>
+    <div><label>Nb participants</label><input type="number" data-k="Nb participants" value="${esc(s['Nb participants'])}"></div>
+    <div><label>Lien dossier</label><input data-k="Lien dossier" value="${esc(s['Lien dossier'])}"></div>
+    <div class="w4"><label>Formateur(s)</label><div style="display:flex;gap:14px;flex-wrap:wrap" id="fmt">${formateurs.map(t => `<label style="display:flex;gap:6px;align-items:center;margin:4px 0;color:var(--text)"><input type="checkbox" style="width:auto" value="${esc(t['Nom'])}" ${choisis.includes(String(t['Nom'])) ? 'checked' : ''}>${esc(t['Nom'])}</label>`).join('')}</div></div>
+    <div class="w4"><label>Notes</label><textarea data-k="Notes">${esc(s['Notes'])}</textarea></div></div>
+    <div class="actions"><button class="btn p" onclick="enregistrerSession(${s._row})">Enregistrer</button></div></div>
+  <div class="card"><h3>Participants (${parts.length})</h3>
+    <table><tr><th>Nom</th><th>Fonction</th><th>Email</th><th>Test (P2)</th><th>Niveau validé (P3)</th><th>Présence %</th><th>Note (P5)</th><th>Attestation</th><th></th></tr>
+    ${parts.map(p => `<tr id="pt${p._row}"><td><input data-k="Nom" value="${esc(p['Nom'])}"></td><td><input data-k="Fonction" value="${esc(p['Fonction'])}"></td><td><input data-k="Email" value="${esc(p['Email'])}"></td>
+      <td><input data-k="Niveau test (P2)" value="${esc(p['Niveau test (P2)'])}"></td><td><input data-k="Niveau validé (P3)" value="${esc(p['Niveau validé (P3)'])}"></td>
+      <td><input type="number" data-k="Présence (%)" value="${esc(p['Présence (%)'])}"></td><td><input data-k="Note évaluation (P5)" value="${esc(p['Note évaluation (P5)'])}"></td>
+      <td>${p['Attestation'] ? tag(p['Attestation'], p['Attestation'] === 'Oui' ? 't-ok' : 't-warn') : ''}</td>
+      <td style="white-space:nowrap"><button class="btn s" onclick="enregistrer('Participants', ${p._row}, 'pt${p._row}')">✓</button><button class="btn s d" onclick="if(confirm('Supprimer ?'))appel('apiSupprimerParticipant',[${p._row}])">×</button></td></tr>`).join('')}
+    <tr id="ptnew"><td><input data-k="Nom" placeholder="Nouveau participant"></td><td><input data-k="Fonction"></td><td><input data-k="Email"></td><td><input data-k="Niveau test (P2)"></td><td><input data-k="Niveau validé (P3)"></td><td><input type="number" data-k="Présence (%)"></td><td><input data-k="Note évaluation (P5)"></td><td></td>
+      <td><input type="hidden" data-k="ID Session" value="${esc(s['ID Session'])}"><button class="btn s p" onclick="enregistrer('Participants', 0, 'ptnew')">+</button></td></tr></table>
+    <div class="actions"><button class="btn" onclick="appel('apiAttestations')">Calculer les attestations (présence ≥ 80 %)</button></div></div>`;
+}
+function enregistrerSession(row) {
+  const o = lireForm('inf');
+  o['Formateur(s)'] = [...document.querySelectorAll('#fmt input:checked')].map(i => i.value).join(', ');
+  appel('apiEnregistrer', ['Sessions', row, o]);
+}
+
+/* ---------- FMFP ---------- */
+function vFmfp() {
+  const E = S.d.constantes.ETAPES_FMFP;
+  const due = x => x['Prochaine relance'] && x['Prochaine relance'] <= today() && !/Clôturé/.test(x['Étape']);
+  return `<div class="top"><h2>Dossiers FMFP</h2><button class="btn g" onclick="appel('apiRelancesHubSpot')">Créer les relances dues dans HubSpot</button></div>
+  <p class="hint">Processus : dossier (facture 100 % + CV formateurs) → facture 70 % → formation → rapports + fiches de présence + facture 30 % → clôture. Les e-mails de suivi partent de HubSpot.</p>
+  <div class="kanban">${E.map(e => { const xs = S.d.FMFP.filter(x => (x['Étape'] || E[0]) === e);
+    return `<div class="col"><h4>${esc(e)} <span class="muted">(${xs.length})</span></h4>${xs.map(x => `<div class="kcard ${due(x) ? 'due' : ''}" onclick="ficheFmfp(${x._row})"><b>${esc(x['Raison sociale'])}</b><div class="muted">${esc(x['ID Session'])} · ${esc(x['N° Proforma'])}</div>
+      ${x['Prochaine relance'] ? `<div class="${due(x) ? 'alerte' : 'muted'}">Relance : ${dfr(x['Prochaine relance'])}</div>` : ''}</div>`).join('')}</div>`; }).join('')}</div>`;
+}
+function ficheFmfp(row) {
+  const x = S.d.FMFP.find(y => y._row === row);
+  const ck = (k, lab) => `<label style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" style="width:auto" data-k="${k}" ${oui(x[k]) ? 'checked' : ''}>${lab}</label>`;
+  const lienF = n => { const f = by(S.d.FACTURES, 'N°', n); return n ? (f ? `<a href="#" onclick="ficheFacture('${f['ID']}');return false">${esc(n)}</a> ${tagStatut(f['Statut paiement'])}` : esc(n)) : '<span class="muted">—</span>'; };
+  ouvrir(`<h3>Dossier FMFP · ${esc(x['Raison sociale'])}</h3><div class="muted">Session ${esc(x['ID Session'])} · proforma ${esc(x['N° Proforma'])} · étape depuis le ${dfr(x['Date étape'])}</div>
+    <div id="f"><label>Étape</label><select data-k="Étape">${S.d.constantes.ETAPES_FMFP.map(e => `<option ${e === x['Étape'] ? 'selected' : ''}>${esc(e)}</option>`).join('')}</select>
+    <table style="margin-top:12px"><tr><td>Facture 100 % (dossier)</td><td>${lienF(x['N° Facture 100 %'])}</td></tr><tr><td>Facture acompte 70 %</td><td>${lienF(x['N° Facture 70 %'])}</td></tr><tr><td>Facture solde 30 %</td><td>${lienF(x['N° Facture 30 %'])}</td></tr></table>
+    <label>Pièces envoyées</label>${ck('CV formateurs envoyés', 'CV des formateurs (avec la facture 100 %)')}${ck('Rapports envoyés', 'Rapports de formation')}${ck('Fiches de présence envoyées', 'Fiches de présence')}
+    <div class="form"><div class="w2"><label>Prochaine relance</label><input type="date" data-k="Prochaine relance" value="${esc(x['Prochaine relance'])}"></div><div class="w2"><label>Relance HubSpot</label><div style="padding-top:8px">${oui(x['Relance HubSpot créée']) ? tag('Tâche créée', 't-ok') : tag('Non créée', 't-mut')}</div></div>
+    <div class="w4"><label>Commentaire</label><textarea data-k="Commentaire">${esc(x['Commentaire'])}</textarea></div></div></div>
+    <p class="hint">Changer d'étape date l'étape et programme la relance automatiquement.</p>
+    <div class="actions"><button class="btn p" onclick="appel('apiMajFmfp',[${row}, lireForm('f')],()=>fermer())">Enregistrer</button><button class="btn" onclick="ficheSession('${esc(x['ID Session'])}')">Voir la session</button><button class="btn" onclick="fermer()">Fermer</button></div>`);
+}
+
+/* ---------- Réglages ---------- */
+function vReglages() {
+  const t = S.filtre || 'params';
+  const onglets = [['params', 'Paramètres'], ['catalogue', 'Catalogue'], ['formateurs', 'Formateurs'], ['hubspot', 'HubSpot']];
+  let corps = '';
+  if (t === 'params') corps = `<table><tr><th>Clé</th><th style="width:45%">Valeur</th><th>Description</th><th></th></tr>${S.d.PARAMS.map(p => `<tr id="pa${p._row}"><td><b>${esc(p['Clé'])}</b></td><td><input data-k="Valeur" value="${esc(p['Valeur'])}"></td><td class="muted">${esc(p['Description'])}</td><td><button class="btn s" onclick="enregistrer('Paramètres', ${p._row}, 'pa${p._row}')">✓</button></td></tr>`).join('')}</table>`;
+  if (t === 'catalogue') corps = `<table><tr><th>Code</th><th>Domaine</th><th>Désignation</th><th>Durée</th><th>Prix HT</th><th>Unité</th><th>Actif</th><th></th></tr>${S.d.CATALOGUE.map(c => `<tr id="ca${c._row}"><td>${esc(c['Code'])}</td><td><input data-k="Domaine" value="${esc(c['Domaine'])}"></td><td><input data-k="Désignation" value="${esc(c['Désignation'])}"></td><td><input type="number" data-k="Durée (h)" value="${esc(c['Durée (h)'])}"></td><td><input type="number" data-k="Prix unitaire HT" value="${esc(c['Prix unitaire HT'])}"></td><td><input data-k="Unité" value="${esc(c['Unité'])}"></td><td><input type="checkbox" style="width:auto" data-k="Actif" ${oui(c['Actif']) ? 'checked' : ''}></td><td><button class="btn s" onclick="enregistrer('Catalogue', ${c._row}, 'ca${c._row}')">✓</button></td></tr>`).join('')}
+    <tr id="canew"><td><input data-k="Code" placeholder="Code"></td><td><input data-k="Domaine"></td><td><input data-k="Désignation"></td><td><input type="number" data-k="Durée (h)"></td><td><input type="number" data-k="Prix unitaire HT"></td><td><input data-k="Unité" value="participant"></td><td><input type="checkbox" style="width:auto" data-k="Actif" checked></td><td><button class="btn s p" onclick="enregistrer('Catalogue', 0, 'canew')">+</button></td></tr></table>`;
+  if (t === 'formateurs') corps = `<table><tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Domaines</th><th>Lien CV (FMFP)</th><th>Tarif jour</th><th>Actif</th><th></th></tr>${S.d.FORMATEURS.map(f => `<tr id="fo${f._row}"><td><input data-k="Nom" value="${esc(f['Nom'])}"></td><td><input data-k="Email" value="${esc(f['Email'])}"></td><td><input data-k="Téléphone" value="${esc(f['Téléphone'])}"></td><td><input data-k="Domaines" value="${esc(f['Domaines'])}"></td><td><input data-k="Lien CV (FMFP)" value="${esc(f['Lien CV (FMFP)'])}"></td><td><input type="number" data-k="Tarif journalier" value="${esc(f['Tarif journalier'])}"></td><td><input type="checkbox" style="width:auto" data-k="Actif" ${oui(f['Actif']) ? 'checked' : ''}></td><td><button class="btn s" onclick="enregistrer('Formateurs', ${f._row}, 'fo${f._row}')">✓</button></td></tr>`).join('')}
+    <tr id="fonew"><td><input data-k="Nom" placeholder="Nouveau formateur"></td><td><input data-k="Email"></td><td><input data-k="Téléphone"></td><td><input data-k="Domaines"></td><td><input data-k="Lien CV (FMFP)"></td><td><input type="number" data-k="Tarif journalier"></td><td><input type="checkbox" style="width:auto" data-k="Actif" checked></td><td><button class="btn s p" onclick="enregistrer('Formateurs', 0, 'fonew')">+</button></td></tr></table>`;
+  if (t === 'hubspot') corps = `<p>Clé HubSpot : ${S.d.constantes.HUBSPOT ? tag('configurée', 't-ok') : tag('absente', 't-ko')}</p>
+    <div class="actions"><button class="btn" onclick="cleHubSpot()">${S.d.constantes.HUBSPOT ? 'Remplacer la clé' : 'Configurer la clé'}</button>
+    <button class="btn p" onclick="appel('apiSyncHubSpot')" ${S.d.constantes.HUBSPOT ? '' : 'disabled'}>Synchroniser les entreprises</button>
+    <button class="btn" onclick="appel('apiImportHubSpot')">Importer depuis l'onglet « Import HubSpot »</button></div>
+    <p class="hint">La synchronisation crée ou met à jour les entités ; une entreprise mère HubSpot devient un groupe. NIF, STAT, e-mail et contact saisis dans l'ERP ne sont jamais écrasés.</p>`;
+  return `<div class="top"><h2>Réglages</h2>${onglets.map(o => `<button class="btn ${o[0] === t ? 'p' : ''}" onclick="S.filtre='${o[0]}';rendre()">${o[1]}</button>`).join('')}</div><div class="card" style="overflow-x:auto">${corps}</div>`;
+}
+
+charger();
+</script>
+</body>
+</html>

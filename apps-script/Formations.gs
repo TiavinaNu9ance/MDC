@@ -2,11 +2,18 @@
 
 function creerSessionDepuisProforma() {
   const p = ligneSelectionnee_(ONGLETS.PROFORMAS);
-  if (!p['N°']) throw new Error('Émettez d\'abord la proforma.');
-  if (p['ID Session']) throw new Error('Session déjà créée : ' + p['ID Session']);
   const ui = ui_();
   const fm = ui.alert('Dossier FMFP ?', 'Cette formation est-elle financée via le FMFP ?', ui.ButtonSet.YES_NO);
-  const fmfp = fm === ui.Button.YES ? 'Oui' : 'Non';
+  const id = creerSessionCore_(p['ID'], fm === ui.Button.YES);
+  ui.alert('Session ' + id + ' créée. Complétez formateurs et dates.');
+}
+
+function creerSessionCore_(idProforma, estFmfp) {
+  const p = trouver_(ONGLETS.PROFORMAS, 'ID', idProforma);
+  if (!p) throw new Error('Proforma introuvable.');
+  if (!p['N°']) throw new Error('Émettez d\'abord la proforma.');
+  if (p['ID Session']) throw new Error('Session déjà créée : ' + p['ID Session']);
+  const fmfp = estFmfp ? 'Oui' : 'Non';
   const annee = new Date(p['Date']).getFullYear();
   const id = nouvelId_(ONGLETS.SESSIONS, 'ID Session', 'S' + annee + '-');
   const nbPart = lignesDe_(p['ID']).filter(function (l) { return String(l['Code']).indexOf('DIV-') !== 0; })
@@ -28,7 +35,12 @@ function creerSessionDepuisProforma() {
   }
   actualiserExports();
   journal_('Session créée', id + ' ← ' + p['N°'] + ' (FMFP : ' + fmfp + ')');
-  ui.alert('Session ' + id + ' créée' + (fmfp === 'Oui' ? ' + dossier FMFP.' : '.') + ' Complétez formateurs et dates dans « Sessions ».');
+  // Rattache les factures déjà émises au dossier FMFP.
+  lire_(ONGLETS.FACTURES).filter(function (f) { return f['N° Proforma'] === p['N°'] && f['Statut'] !== 'Annulée'; }).forEach(function (f) {
+    const t = /FMFP/.test(f['Type']) ? 'FMFP_100' : /^Acompte/.test(f['Type']) ? 'ACOMPTE' : /^Solde/.test(f['Type']) ? 'SOLDE' : '';
+    if (t) lierFactureFmfp_(p['N°'], t, f['N°']);
+  });
+  return id;
 }
 
 /** Rattache automatiquement les n° de facture au dossier FMFP. */
