@@ -7,7 +7,7 @@
   var SHOW_PRICES = false;
   // Adresse Formspree (https://formspree.io) pour recevoir les messages par e-mail.
   // Laisser vide : le formulaire ouvre alors la messagerie du visiteur.
-  var FORM_ENDPOINT = '';
+  var FORM_ENDPOINT = 'contact.php';
   // Option recommandée : envoyer les demandes directement dans HubSpot (formulaire HubSpot existant).
   // Renseigner l'ID du portail et le GUID du formulaire (HubSpot > Marketing > Formulaires).
   // Le formulaire HubSpot doit contenir les champs : firstname, email, company, phone, message.
@@ -176,6 +176,8 @@
     current = c;
     modal.style.setProperty('--c', getComputedStyle(panel).getPropertyValue('--c'));
     $('#mLvl').textContent = $('.course__lvl', c).textContent;
+    var lg = $('.course__logo', c), ml = $('#mLogo');
+    if (lg) { ml.src = lg.getAttribute('src'); ml.hidden = false; } else ml.hidden = true;
     $('#mTitle').textContent = $('h3', c).textContent;
     var facts = ['<span>◷ ' + esc($('.course__meta span', c).textContent) + '</span>', '<span>' + DOMAINES[panel.getAttribute('data-panel')] + '</span>'];
     if (SHOW_PRICES) facts.push('<span>' + fmt.format(+$('.price', c).getAttribute('data-price')) + ' Ar / participant</span>');
@@ -299,8 +301,9 @@
     }
     form.classList.add('is-loading');
     fetch(FORM_ENDPOINT, { method: 'POST', body: data, headers: { Accept: 'application/json' } })
-      .then(function (r) { if (!r.ok) throw new Error(); form.reset(); status.className = 'form__status ok'; status.textContent = 'Merci ! Votre demande est envoyée, nous revenons vers vous rapidement.'; })
-      .catch(function () { status.className = 'form__status ko'; status.textContent = 'Envoi impossible. Écrivez-nous à ' + CONTACT_EMAIL + '.'; })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok || j.ok === false) throw new Error(j.message || ''); return j; }); })
+      .then(function () { form.reset(); status.className = 'form__status ok'; status.textContent = 'Merci ! Votre demande est envoyée, nous revenons vers vous rapidement.'; })
+      .catch(function (err) { status.className = 'form__status ko'; status.textContent = (err && err.message) || ('Envoi impossible. Écrivez-nous à ' + CONTACT_EMAIL + '.'); })
       .then(function () { form.classList.remove('is-loading'); });
   });
 
