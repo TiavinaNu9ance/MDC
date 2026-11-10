@@ -42,6 +42,8 @@
   </script>
 </head>
 <body>
+  <div class="ambient" aria-hidden="true"><div class="ambient__orbs"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span><span class="orb o4"></span></div><div class="grain"></div></div>
+  <div class="cursor-glow" aria-hidden="true"></div>
   <a class="skip" href="#main">Aller au contenu</a>
   <div class="progress" aria-hidden="true"><span></span></div>
 
@@ -49,7 +51,7 @@
   <header class="header" id="top">
     <div class="container header__in">
       <a href="#top" class="brand" aria-label="Madagascar Data Camp, accueil">
-        <img src="assets/img/logo.svg" alt="" width="38" height="38">
+        <span class="brand__logo"><img src="assets/img/logo-mdc.png" alt="" width="38" height="38" onerror="this.onerror=null;this.src='assets/img/logo.svg'"></span>
         <span class="brand__txt"><b>Madagascar Data Camp</b><small>Former aujourd'hui pour performer demain</small></span>
       </a>
       <nav class="nav" id="nav" aria-label="Navigation principale">
@@ -76,7 +78,7 @@
   <main id="main">
     <!-- ============ HERO ============ -->
     <section class="hero">
-      <div class="hero__bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="grid-bg"></span></div>
+      <div class="hero__bg" aria-hidden="true"><span class="grid-bg"></span></div>
       <div class="container hero__in">
         <div class="hero__copy">
           <a href="#entreprises" class="pill reveal"><span class="pill__tag">FMFP</span> Formations éligibles : on monte le dossier avec vous <span aria-hidden="true">→</span></a>
@@ -121,7 +123,7 @@
 
     <!-- ============ CHIFFRES ============ -->
     <section class="stats" aria-label="MDC en chiffres">
-      <div class="container stats__in">
+      <div class="container stats__in glow-border">
         <div class="stat reveal"><b><span class="count" data-to="2022" data-plain>2022</span></b><span>Année de création</span></div>
         <div class="stat reveal"><b><span class="count" data-to="4">4</span></b><span>Domaines : Excel, Power BI, IA, Notion</span></div>
         <div class="stat reveal"><b><span class="count" data-to="14">14</span></b><span>Modules au catalogue 2026</span></div>
@@ -133,12 +135,9 @@
     <!-- À VALIDER : références reprises du catalogue MDC 2026. Citer un client sur le site nécessite son accord : supprimez les noms non autorisés. -->
     <section class="clients" aria-label="Ils nous ont fait confiance">
       <p class="eyebrow center">Ils nous ont fait confiance</p>
-      <div class="marquee">
-        <div class="marquee__track">
-          <span>GIZ</span><span>Union européenne</span><span>Novotel</span><span>Imperial Brands</span><span>Aigle d'Or</span><span>Pilatex</span><span>Lecofruit</span><span>Anjajavy Lodge</span><span>SIPEM</span><span>Socotec</span><span>Visionix</span><span>ADES</span><span>Axelle</span><span>Habibo Group</span><span>Swiofish</span><span>BAT PRO</span><span>MECA.BE</span><span>NXT Accelerator</span><span>Arbiochem</span>
-          <span aria-hidden="true">GIZ</span><span aria-hidden="true">Union européenne</span><span aria-hidden="true">Novotel</span><span aria-hidden="true">Imperial Brands</span><span aria-hidden="true">Aigle d'Or</span><span aria-hidden="true">Pilatex</span><span aria-hidden="true">Lecofruit</span><span aria-hidden="true">Anjajavy Lodge</span><span aria-hidden="true">SIPEM</span><span aria-hidden="true">Socotec</span><span aria-hidden="true">Visionix</span><span aria-hidden="true">ADES</span><span aria-hidden="true">Axelle</span><span aria-hidden="true">Habibo Group</span><span aria-hidden="true">Swiofish</span><span aria-hidden="true">BAT PRO</span><span aria-hidden="true">MECA.BE</span><span aria-hidden="true">NXT Accelerator</span><span aria-hidden="true">Arbiochem</span>
-        </div>
-      </div>
+      <!-- À VALIDER : accord des clients pour être cités. Logos dans assets/img/clients/ -->
+      <div class="marquee"><div class="marquee__track"><div class="logo-card"><img src="assets/img/clients/novotel.png" alt="Novotel" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card"><img src="assets/img/clients/giz.png" alt="GIZ" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card"><img src="assets/img/clients/socotec.png" alt="Socotec" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card"><img src="assets/img/clients/aigle-dor.png" alt="Aigle d'Or" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card"><img src="assets/img/clients/promodim.png" alt="PROMODIM" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card"><img src="assets/img/clients/lecofruit.png" alt="Lecofruit" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card"><img src="assets/img/clients/habibo-group.jpeg" alt="Habibo Group" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card"><img src="assets/img/clients/axelle.png" alt="Axelle" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card"><img src="assets/img/clients/ades.webp" alt="ADES" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card"><img src="assets/img/clients/nxt-accelerator.png" alt="NXT Accelerator" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card" aria-hidden="true"><img src="assets/img/clients/novotel.png" alt="Novotel" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card" aria-hidden="true"><img src="assets/img/clients/giz.png" alt="GIZ" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card" aria-hidden="true"><img src="assets/img/clients/socotec.png" alt="Socotec" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card" aria-hidden="true"><img src="assets/img/clients/aigle-dor.png" alt="Aigle d'Or" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card" aria-hidden="true"><img src="assets/img/clients/promodim.png" alt="PROMODIM" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card" aria-hidden="true"><img src="assets/img/clients/lecofruit.png" alt="Lecofruit" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card" aria-hidden="true"><img src="assets/img/clients/habibo-group.jpeg" alt="Habibo Group" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card" aria-hidden="true"><img src="assets/img/clients/axelle.png" alt="Axelle" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card" aria-hidden="true"><img src="assets/img/clients/ades.webp" alt="ADES" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div><div class="logo-card" aria-hidden="true"><img src="assets/img/clients/nxt-accelerator.png" alt="NXT Accelerator" loading="lazy" onerror="this.parentNode.classList.add('is-text');this.replaceWith(document.createTextNode(this.alt))"></div></div></div>
+      <div class="marquee marquee--rev"><div class="marquee__track"><span class="name-pill">Union européenne</span><span class="name-pill">Imperial Brands</span><span class="name-pill">Pilatex</span><span class="name-pill">Anjajavy Lodge</span><span class="name-pill">SIPEM</span><span class="name-pill">Visionix</span><span class="name-pill">Swiofish</span><span class="name-pill">BAT PRO</span><span class="name-pill">MECA.BE</span><span class="name-pill">Arbiochem</span><span class="name-pill" aria-hidden="true">Union européenne</span><span class="name-pill" aria-hidden="true">Imperial Brands</span><span class="name-pill" aria-hidden="true">Pilatex</span><span class="name-pill" aria-hidden="true">Anjajavy Lodge</span><span class="name-pill" aria-hidden="true">SIPEM</span><span class="name-pill" aria-hidden="true">Visionix</span><span class="name-pill" aria-hidden="true">Swiofish</span><span class="name-pill" aria-hidden="true">BAT PRO</span><span class="name-pill" aria-hidden="true">MECA.BE</span><span class="name-pill" aria-hidden="true">Arbiochem</span></div></div>
     </section>
 
     <!-- ============ FORMATIONS ============ -->
@@ -162,48 +161,48 @@
         <div class="panel is-active" role="tabpanel" data-panel="excel" style="--c:var(--excel)">
           <p class="panel__intro">Formules, tableaux croisés dynamiques, Power Query, tableaux de bord : rendre vos équipes autonomes et fiables sur l'outil le plus utilisé en entreprise.</p>
           <div class="cards">
-            <article class="course"><span class="course__lvl">Niveau 1</span><h3>Excel Découverte</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="300000"></p></article>
-            <article class="course"><span class="course__lvl">Niveau 2</span><h3>Excel Imprégnation</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="300000"></p></article>
-            <article class="course"><span class="course__lvl">Niveau 3</span><h3>Excel Exploitation</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="350000"></p></article>
-            <article class="course"><span class="course__lvl">Niveau 4</span><h3>Excel Perfectionnement</h3><p class="course__meta"><span>15 h</span></p><p class="price" data-price="450000"></p></article>
-            <article class="course course--pack"><span class="course__lvl">Pack</span><h3>Excel Silver</h3><p class="course__meta"><span>18 h</span></p><p class="price" data-price="500000"></p></article>
-            <article class="course course--pack"><span class="course__lvl">Pack</span><h3>Excel Gold</h3><p class="course__meta"><span>21 h</span></p><p class="price" data-price="650000"></p></article>
-            <article class="course course--pack"><span class="course__lvl">Pack</span><h3>Excel Premium</h3><p class="course__meta"><span>30 h</span></p><p class="price" data-price="900000"></p></article>
-            <article class="course course--pack course--top"><span class="course__lvl">Parcours complet</span><h3>Excel All-in</h3><p class="course__meta"><span>30 h</span></p><p class="price" data-price="1150000"></p></article>
+            <article class="course" data-id="excel-1" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Niveau 1</span><h3>Excel Découverte</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="300000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course" data-id="excel-2" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Niveau 2</span><h3>Excel Imprégnation</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="300000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course" data-id="excel-3" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Niveau 3</span><h3>Excel Exploitation</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="350000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course" data-id="excel-4" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Niveau 4</span><h3>Excel Perfectionnement</h3><p class="course__meta"><span>15 h</span></p><p class="price" data-price="450000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course course--pack" data-id="excel-silver" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Pack</span><h3>Excel Silver</h3><p class="course__meta"><span>18 h</span></p><p class="price" data-price="500000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course course--pack" data-id="excel-gold" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Pack</span><h3>Excel Gold</h3><p class="course__meta"><span>21 h</span></p><p class="price" data-price="650000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course course--pack" data-id="excel-premium" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Pack</span><h3>Excel Premium</h3><p class="course__meta"><span>30 h</span></p><p class="price" data-price="900000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course course--pack course--top" data-id="excel-all-in" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Parcours complet</span><h3>Excel All-in</h3><p class="course__meta"><span>30 h</span></p><p class="price" data-price="1150000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
           </div>
         </div>
 
         <div class="panel" role="tabpanel" data-panel="pbi" style="--c:var(--pbi)" hidden>
           <p class="panel__intro">Connecter ses sources, modéliser, écrire ses mesures DAX et publier des rapports que la direction consulte vraiment.</p>
           <div class="cards">
-            <article class="course"><span class="course__lvl">Niveau 1</span><h3>Power BI Niveau 1</h3><p class="course__meta"><span>15 h</span></p><p class="price" data-price="500000"></p></article>
-            <article class="course"><span class="course__lvl">Niveau 2</span><h3>Power BI Niveau 2</h3><p class="course__meta"><span>15 h</span></p><p class="price" data-price="500000"></p></article>
-            <article class="course"><span class="course__lvl">Niveau 3</span><h3>Power BI Niveau 3</h3><p class="course__meta"><span>15 h</span></p><p class="price" data-price="500000"></p></article>
-            <article class="course"><span class="course__lvl">Niveau 4</span><h3>Power BI Niveau 4</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="400000"></p></article>
-            <article class="course course--pack"><span class="course__lvl">Pack</span><h3>Power BI Silver</h3><p class="course__meta"><span>24 h</span></p><p class="price" data-price="900000"></p></article>
-            <article class="course course--pack"><span class="course__lvl">Pack</span><h3>Power BI Gold</h3><p class="course__meta"><span>27 h</span></p><p class="price" data-price="1350000"></p></article>
-            <article class="course course--pack"><span class="course__lvl">Pack</span><h3>Power BI Premium</h3><p class="course__meta"><span>30 h</span></p><p class="price" data-price="1650000"></p></article>
-            <article class="course course--pack course--top"><span class="course__lvl">Parcours complet</span><h3>Power BI All-in</h3><p class="course__meta"><span>36 h</span></p><p class="price" data-price="1800000"></p></article>
+            <article class="course" data-id="pbi-1" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Niveau 1</span><h3>Power BI Découverte</h3><p class="course__meta"><span>15 h</span></p><p class="price" data-price="500000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course" data-id="pbi-2" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Niveau 2</span><h3>Power BI Imprégnation</h3><p class="course__meta"><span>15 h</span></p><p class="price" data-price="500000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course" data-id="pbi-3" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Niveau 3</span><h3>Power BI Exploitation</h3><p class="course__meta"><span>15 h</span></p><p class="price" data-price="500000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course" data-id="pbi-4" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Niveau 4</span><h3>Power BI Perfectionnement</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="400000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course course--pack" data-id="pbi-silver" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Pack</span><h3>Power BI Silver</h3><p class="course__meta"><span>24 h</span></p><p class="price" data-price="900000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course course--pack" data-id="pbi-gold" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Pack</span><h3>Power BI Gold</h3><p class="course__meta"><span>27 h</span></p><p class="price" data-price="1350000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course course--pack" data-id="pbi-premium" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Pack</span><h3>Power BI Premium</h3><p class="course__meta"><span>30 h</span></p><p class="price" data-price="1650000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course course--pack course--top" data-id="pbi-all-in" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Parcours complet</span><h3>Power BI All-in</h3><p class="course__meta"><span>36 h</span></p><p class="price" data-price="1800000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
           </div>
         </div>
 
         <div class="panel" role="tabpanel" data-panel="ia" style="--c:var(--ia)" hidden>
           <p class="panel__intro">Utiliser les assistants d'IA au quotidien : rédiger, analyser, automatiser, en gardant la maîtrise de la qualité et de la confidentialité.</p>
           <div class="cards">
-            <article class="course"><span class="course__lvl">Niveau 1</span><h3>IA Niveau 1</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="400000"></p></article>
-            <article class="course"><span class="course__lvl">Niveau 2</span><h3>IA Niveau 2</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="500000"></p></article>
-            <article class="course"><span class="course__lvl">Niveau 3</span><h3>IA Niveau 3</h3><p class="course__meta"><span>15 h</span></p><p class="price" data-price="700000"></p></article>
-            <article class="course course--pack course--top"><span class="course__lvl">Parcours complet</span><h3>Pack IA</h3><p class="course__meta"><span>39 h</span></p><p class="price" data-price="1600000"></p></article>
+            <article class="course" data-id="ia-1" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Niveau 1</span><h3>IA Découverte</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="400000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course" data-id="ia-2" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Niveau 2</span><h3>IA Imprégnation</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="500000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course" data-id="ia-3" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Niveau 3</span><h3>IA Exploitation</h3><p class="course__meta"><span>15 h</span></p><p class="price" data-price="700000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course course--pack course--top" data-id="ia-pack" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Parcours complet</span><h3>Pack IA</h3><p class="course__meta"><span>39 h</span></p><p class="price" data-price="1600000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
           </div>
         </div>
 
         <div class="panel" role="tabpanel" data-panel="notion" style="--c:var(--notion)" hidden>
           <p class="panel__intro">Organiser l'information, les projets et la documentation de l'équipe dans un espace de travail partagé.</p>
           <div class="cards">
-            <article class="course"><span class="course__lvl">Niveau 1</span><h3>Notion Niveau 1</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="400000"></p></article>
-            <article class="course"><span class="course__lvl">Niveau 2</span><h3>Notion Niveau 2</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="400000"></p></article>
-            <article class="course"><span class="course__lvl">Niveau 3</span><h3>Notion Niveau 3</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="500000"></p></article>
-            <article class="course course--pack course--top"><span class="course__lvl">Parcours complet</span><h3>Pack Notion</h3><p class="course__meta"><span>36 h</span></p><p class="price" data-price="1300000"></p></article>
+            <article class="course" data-id="notion-1" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Niveau 1</span><h3>Notion Découverte</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="400000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course" data-id="notion-2" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Niveau 2</span><h3>Notion Imprégnation</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="400000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course" data-id="notion-3" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Niveau 3</span><h3>Notion Exploitation</h3><p class="course__meta"><span>12 h</span></p><p class="price" data-price="500000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
+            <article class="course course--pack course--top" data-id="notion-pack" role="button" tabindex="0" aria-haspopup="dialog"><span class="course__lvl">Parcours complet</span><h3>Pack Notion</h3><p class="course__meta"><span>36 h</span></p><p class="price" data-price="1300000"></p><p class="course__desc" data-desc></p><span class="course__more">Voir le programme <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></article>
           </div>
         </div>
 
@@ -256,7 +255,7 @@
           <h2>Vous choisissez la formation.<br>On s'occupe du reste.</h2>
         </div>
         <div class="bento">
-          <article class="tile tile--wide tile--accent reveal">
+          <article class="tile tile--wide tile--accent reveal glow-border">
             <div class="tile__ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg></div>
             <h3>Accompagnement FMFP</h3>
             <p>Nous préparons avec vous le dossier de financement FMFP : cahier des charges, plan de formation, budget, CV des formateurs, puis les rapports et fiches de présence après la session.</p>
@@ -344,7 +343,7 @@
           </ul>
         </div>
 
-        <form class="form reveal" id="contactForm" novalidate>
+        <form class="form reveal glow-border" id="contactForm" novalidate>
           <div class="seg" role="radiogroup" aria-label="Vous êtes">
             <label><input type="radio" name="type" value="Entreprise" checked><span>Entreprise</span></label>
             <label><input type="radio" name="type" value="ONG / Institution"><span>ONG / Institution</span></label>
@@ -401,7 +400,7 @@
   <footer class="footer">
     <div class="container footer__in">
       <div class="footer__brand">
-        <a href="#top" class="brand"><img src="assets/img/logo.svg" alt="" width="38" height="38"><span class="brand__txt"><b>Madagascar Data Camp</b><small>Former aujourd'hui pour performer demain</small></span></a>
+        <a href="#top" class="brand"><span class="brand__logo"><img src="assets/img/logo-mdc.png" alt="" width="38" height="38" onerror="this.onerror=null;this.src='assets/img/logo.svg'"></span><span class="brand__txt"><b>Madagascar Data Camp</b><small>Former aujourd'hui pour performer demain</small></span></a>
         <p>Formations Excel, Power BI, IA et Notion orientées résultats, adaptées aux réalités du marché malgache.</p>
       </div>
       <div>
@@ -423,7 +422,26 @@
     </div>
   </footer>
 
+
+  <!-- ============ FICHE FORMATION (fenêtre) ============ -->
+  <dialog class="modal" id="courseModal" aria-labelledby="mTitle">
+    <div class="modal__box">
+      <button class="modal__close icon-btn" type="button" data-close aria-label="Fermer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <header class="modal__head">
+        <span class="course__lvl" id="mLvl"></span>
+        <h3 id="mTitle"></h3>
+        <div class="modal__facts" id="mFacts"></div>
+      </header>
+      <div class="modal__body" id="mBody"></div>
+      <footer class="modal__foot">
+        <button class="btn btn--primary btn--lg" type="button" id="mQuote">Demander un devis pour cette formation</button>
+        <button class="btn btn--ghost btn--lg" type="button" data-close>Fermer</button>
+      </footer>
+    </div>
+  </dialog>
+
   <a href="#top" class="totop" aria-label="Revenir en haut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg></a>
+  <script src="assets/js/catalogue.js" defer></script>
   <script src="assets/js/main.js" defer></script>
 </body>
 </html>

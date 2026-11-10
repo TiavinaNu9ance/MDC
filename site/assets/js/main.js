@@ -24,8 +24,7 @@
 
   /* ----- Thème clair / sombre ----- */
   $('#themeBtn').addEventListener('click', function () {
-    var current = doc.getAttribute('data-theme') ||
-      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var current = doc.getAttribute('data-theme') || 'light';
     var next = current === 'dark' ? 'light' : 'dark';
     doc.setAttribute('data-theme', next);
     try { localStorage.setItem('mdc-theme', next); } catch (e) {}
@@ -164,23 +163,93 @@
       if (s === 'Formation financée FMFP') $('input[name="fmfp"]').checked = true;
     });
   });
-  $$('.course').forEach(function (c) {
-    c.style.cursor = 'pointer';
-    c.setAttribute('tabindex', '0');
-    c.setAttribute('title', 'Demander cette formation');
-    function go() {
-      var name = $('h3', c).textContent;
-      subj.value = 'Demande : ' + name;
-      var panel = c.closest('.panel').getAttribute('data-panel');
-      dom.value = { excel: 'Excel', pbi: 'Power BI', ia: 'Intelligence artificielle', notion: 'Notion' }[panel];
-      var msg = $('#f-msg');
-      if (!msg.value) msg.value = 'Bonjour, je souhaite des informations sur la formation « ' + name + ' ».';
-      $('#contact').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
-      setTimeout(function () { $('#f-name').focus({ preventScroll: true }); }, 700);
+  /* ----- Fiche détaillée de chaque formation ----- */
+  var CAT = window.MDC_CATALOGUE || {};
+  var INCLUS = ['Test de positionnement avant la formation', 'Supports PDF, exercices corrigés et jeux de données',
+    'Contact du formateur après la formation', 'Attestation si présence ≥ 80 %'];
+  var DOMAINES = { excel: 'Excel', pbi: 'Power BI', ia: 'Intelligence artificielle', notion: 'Notion' };
+  var modal = $('#courseModal'), current = null;
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function list(arr) { return '<ul class="mlist">' + arr.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'; }
+  function openCourse(c) {
+    var id = c.getAttribute('data-id'), d = CAT[id] || {}, panel = c.closest('.panel');
+    current = c;
+    modal.style.setProperty('--c', getComputedStyle(panel).getPropertyValue('--c'));
+    $('#mLvl').textContent = $('.course__lvl', c).textContent;
+    $('#mTitle').textContent = $('h3', c).textContent;
+    var facts = ['<span>◷ ' + esc($('.course__meta span', c).textContent) + '</span>', '<span>' + DOMAINES[panel.getAttribute('data-panel')] + '</span>'];
+    if (SHOW_PRICES) facts.push('<span>' + fmt.format(+$('.price', c).getAttribute('data-price')) + ' Ar / participant</span>');
+    if (d.format) facts.push('<span>' + esc(d.format) + '</span>');
+    $('#mFacts').innerHTML = facts.join('');
+    var h = '';
+    if (d.resume && !d.niveau) h += '<p class="mlead">' + esc(d.resume) + '</p>';
+    var side = '';
+    if (d.niveau) side += '<div class="mbox"><h4>Niveau</h4><p>' + esc(d.niveau) + '</p></div>';
+    if (d.public) side += '<div class="mbox"><h4>Public</h4><p>' + esc(d.public) + '</p></div>';
+    if (d.prerequis) side += '<div class="mbox"><h4>Prérequis</h4><p>' + esc(d.prerequis) + '</p></div>';
+    if (side) h += '<div class="mgrid">' + side + '</div>';
+    if (d.objectifs && d.objectifs.length) h += '<section><h4>Objectifs</h4>' + list(d.objectifs) + '</section>';
+    if (d.programme && d.programme.length) {
+      h += '<section><h4>Programme</h4><ol class="mprog">' + d.programme.map(function (m, i) {
+        if (typeof m === 'string') return '<li><span class="mprog__n">' + (i + 1) + '</span><div><b>' + esc(m) + '</b></div></li>';
+        return '<li><span class="mprog__n">' + (i + 1) + '</span><div><b>' + esc(m.titre) + '</b>' + (m.points ? list(m.points) : '') + '</div></li>';
+      }).join('') + '</ol></section>';
     }
-    c.addEventListener('click', go);
-    c.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
+    if (d.contient) h += '<section><h4>Ce pack regroupe</h4>' + list(d.contient) + '</section>';
+    if (d.intro) h += '<p class="mintro">' + esc(d.intro) + '</p>';
+    if (!h) h = '<p class="mlead">Le programme détaillé de cette formation vous est envoyé sur demande.</p>';
+    h += '<section class="mincl"><h4>Inclus dans chaque formation</h4>' + list(INCLUS) + '</section>';
+    $('#mBody').innerHTML = h;
+    $('#mBody').scrollTop = 0;
+    if (modal.showModal) modal.showModal(); else modal.setAttribute('open', '');
+    doc.classList.add('modal-open');
+  }
+  function closeModal() {
+    modal.classList.add('is-closing');
+    setTimeout(function () { modal.classList.remove('is-closing'); if (modal.close) modal.close(); else modal.removeAttribute('open'); doc.classList.remove('modal-open'); if (current) current.focus(); }, reduce ? 0 : 220);
+  }
+  $$('[data-close]', modal).forEach(function (b) { b.addEventListener('click', closeModal); });
+  modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+  modal.addEventListener('cancel', function (e) { e.preventDefault(); closeModal(); });
+  $('#mQuote').addEventListener('click', function () {
+    var c = current, name = $('h3', c).textContent;
+    subj.value = 'Demande : ' + name;
+    dom.value = DOMAINES[c.closest('.panel').getAttribute('data-panel')];
+    var msg = $('#f-msg');
+    if (!msg.value) msg.value = 'Bonjour, je souhaite un devis pour la formation « ' + name + ' ».';
+    closeModal();
+    setTimeout(function () { $('#contact').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' }); }, 240);
+    setTimeout(function () { $('#f-name').focus({ preventScroll: true }); }, 900);
   });
+  $$('.course').forEach(function (c) {
+    var d = CAT[c.getAttribute('data-id')], desc = $('[data-desc]', c);
+    if (d && d.resume && desc) desc.textContent = d.resume; else if (desc) desc.remove();
+    c.addEventListener('click', function () { openCourse(c); });
+    c.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCourse(c); } });
+  });
+
+  /* ----- Titres : apparition mot par mot ----- */
+  if (!reduce) {
+    $$('h2').forEach(function (h) {
+      var walker = document.createTreeWalker(h, NodeFilter.SHOW_TEXT), nodes = [], n, i = 0;
+      while ((n = walker.nextNode())) nodes.push(n);
+      nodes.forEach(function (node) {
+        var isGrad = node.parentNode.classList && node.parentNode.classList.contains('grad');
+        var frag = document.createDocumentFragment();
+        node.textContent.split(/(\s+)/).forEach(function (part) {
+          if (!part) return;
+          if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); return; }
+          var w = document.createElement('span'), inner = document.createElement('span');
+          w.className = 'wl'; inner.className = 'w' + (isGrad ? ' grad' : ''); inner.textContent = part;
+          inner.style.transitionDelay = (i++ * 0.05) + 's';
+          w.appendChild(inner); frag.appendChild(w);
+        });
+        node.parentNode.replaceChild(frag, node);
+      });
+      $$('.grad', h).forEach(function (g) { if (!g.classList.contains('w')) g.classList.add('grad--parent'); });
+      h.classList.add('split');
+    });
+  }
 
   /* ----- Formulaire ----- */
   var form = $('#contactForm'), status = $('#formStatus');
@@ -252,6 +321,33 @@
       });
       b.addEventListener('mouseleave', function () { b.style.transform = ''; });
     });
+  }
+
+  /* ----- Lumière qui suit la souris sur les cartes + halo global + parallaxe ----- */
+  if (!reduce && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    $$('.course:not(.course--top), .tile, .step, .value, .stat, .acc details, .form').forEach(function (el) {
+      el.classList.add('spot');
+      el.addEventListener('pointermove', function (e) {
+        var r = el.getBoundingClientRect();
+        el.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+        el.style.setProperty('--my', (e.clientY - r.top) + 'px');
+      });
+    });
+    var glow = $('.cursor-glow'), gx = 0, gy = 0, tx = 0, ty = 0;
+    window.addEventListener('pointermove', function (e) { tx = e.clientX; ty = e.clientY; glow.classList.add('on'); }, { passive: true });
+    (function follow() {
+      gx += (tx - gx) * 0.12; gy += (ty - gy) * 0.12;
+      glow.style.transform = 'translate(' + gx + 'px,' + gy + 'px)';
+      requestAnimationFrame(follow);
+    })();
+  }
+  /* Le fond change doucement de teinte au fil de la page */
+  var orbs = $('.ambient__orbs');
+  if (orbs && !reduce) {
+    window.addEventListener('scroll', function () {
+      var p = window.scrollY / Math.max(1, document.body.scrollHeight - window.innerHeight);
+      orbs.style.transform = 'rotate(' + (p * 90) + 'deg) scale(' + (1 + p * 0.15) + ')';
+    }, { passive: true });
   }
 
   $('#year').textContent = new Date().getFullYear();
