@@ -230,6 +230,69 @@
     c.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCourse(c); } });
   });
 
+  /* ----- Actualités : offres de formation et événements ----- */
+  (function () {
+    var A = window.MDC_ACTUS || { offres: [], evenements: [] };
+    var apercu = /[?&]apercu\b/.test(location.search);
+    var LOGOS = { excel: 'assets/img/tools/excel.svg', pbi: 'assets/img/tools/powerbi.svg', ia: 'assets/img/tools/chatgpt.svg', notion: 'assets/img/tools/notion.png' };
+    var MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    function d(str) { if (!str) return null; var p = str.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+    function longDate(dt) { return dt.getDate() + ' ' + MOIS[dt.getMonth()] + ' ' + dt.getFullYear(); }
+    function badge(dt) {
+      if (!dt) return '<div class="nbadge nbadge--soon"><b>Bientôt</b></div>';
+      return '<div class="nbadge"><b>' + dt.getDate() + '</b><span>' + MOIS[dt.getMonth()] + '</span><small>' + dt.getFullYear() + '</small></div>';
+    }
+    function visible(x) { return !x.exemple || apercu; }
+    function card(x, kind, past) {
+      var dt = d(x.date), fin = d(x.fin), logo = LOGOS[x.domaine];
+      var when = dt ? (fin && fin > dt ? 'Du ' + longDate(dt) + ' au ' + longDate(fin) : longDate(dt)) + (x.heure ? ' · ' + esc(x.heure) : '') : 'Date à venir';
+      var tag = kind === 'offres' ? (x.statut || 'À venir') : (past ? 'Terminé' : (x.type || 'Événement'));
+      var meta = [when, x.lieu, x.format].filter(Boolean).map(function (m) { return '<li>' + esc(m) + '</li>'; }).join('');
+      var cta = past ? '' : (x.lien
+        ? '<a class="ncard__cta" href="' + esc(x.lien) + '" target="_blank" rel="noopener">' + (kind === 'offres' ? 'S\'inscrire' : 'En savoir plus') + ' <span aria-hidden="true">→</span></a>'
+        : '<button type="button" class="ncard__cta" data-news-sub="' + esc((kind === 'offres' ? 'Inscription : ' : 'Événement : ') + x.titre) + '">' + (kind === 'offres' ? 'Je suis intéressé' : 'Je participe') + ' <span aria-hidden="true">→</span></button>');
+      return '<article class="ncard ncard--' + kind + (past ? ' is-past' : '') + (x.exemple ? ' is-demo' : '') + '">' +
+        badge(dt) +
+        '<div class="ncard__body">' +
+          '<div class="ncard__top"><span class="ncard__tag">' + esc(tag) + '</span>' + (x.exemple ? '<span class="ncard__demo">Exemple</span>' : '') + (logo ? '<img src="' + logo + '" alt="" width="26" height="26">' : '') + '</div>' +
+          '<h3>' + esc(x.titre) + '</h3>' +
+          (x.description ? '<p>' + esc(x.description) + '</p>' : '') +
+          '<ul class="ncard__meta">' + meta + '</ul>' +
+          (x.prix ? '<p class="ncard__prix">' + esc(x.prix) + '</p>' : '') +
+          cta +
+        '</div></article>';
+    }
+    function empty(kind) {
+      return '<div class="nempty"><b>' + (kind === 'offres' ? 'Nos prochaines offres arrivent bientôt.' : 'Aucun événement programmé pour le moment.') + '</b>' +
+        '<p>Laissez-nous vos coordonnées pour être prévenu en priorité.</p><button type="button" class="btn btn--primary" data-news-sub="Être informé des actualités MDC">Être prévenu</button></div>';
+    }
+    var offres = (A.offres || []).filter(visible).filter(function (x) { var f = d(x.fin) || d(x.date); return !f || f >= today; })
+      .sort(function (a, b) { return (d(a.date) || 9e15) - (d(b.date) || 9e15); });
+    var evs = (A.evenements || []).filter(visible);
+    var futurs = evs.filter(function (x) { var t = d(x.date); return !t || t >= today; }).sort(function (a, b) { return (d(a.date) || 9e15) - (d(b.date) || 9e15); });
+    var passes = evs.filter(function (x) { var t = d(x.date); return t && t < today; }).sort(function (a, b) { return d(b.date) - d(a.date); }).slice(0, 3);
+    $('#newsOffres').innerHTML = offres.length ? offres.map(function (x) { return card(x, 'offres'); }).join('') : empty('offres');
+    $('#newsEvents').innerHTML = (futurs.length ? futurs.map(function (x) { return card(x, 'evenements'); }).join('') : empty('evenements')) +
+      passes.map(function (x) { return card(x, 'evenements', true); }).join('');
+    $('#nOffres').textContent = offres.length; $('#nEvents').textContent = futurs.length;
+    $$('.seg-tab').forEach(function (t) {
+      t.addEventListener('click', function () {
+        var k = t.getAttribute('data-news');
+        $$('.seg-tab').forEach(function (b) { var on = b === t; b.classList.toggle('is-active', on); b.setAttribute('aria-selected', String(on)); });
+        $$('.news-panel').forEach(function (p) { var on = p.getAttribute('data-news-panel') === k; p.hidden = !on; p.classList.toggle('is-active', on); });
+      });
+    });
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-news-sub]'); if (!b) return;
+      var sub = b.getAttribute('data-news-sub');
+      $('#f-subject').value = sub;
+      var msg = $('#f-msg'); if (!msg.value) msg.value = 'Bonjour, ' + (sub.indexOf('Être informé') === 0 ? 'je souhaite être informé des prochaines formations et événements MDC.' : 'je suis intéressé par : « ' + sub.replace(/^[^:]+: /, '') + ' ».');
+      $('#contact').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+      setTimeout(function () { $('#f-name').focus({ preventScroll: true }); }, 800);
+    });
+  })();
+
   /* ----- Titres : apparition mot par mot ----- */
   if (!reduce) {
     $$('h2').forEach(function (h) {

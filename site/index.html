@@ -58,6 +58,7 @@
         <a href="#formations">Formations</a>
         <a href="#methode">Méthode</a>
         <a href="#entreprises">Entreprises &amp; FMFP</a>
+        <a href="#actualites">Actualités</a>
         <a href="#faq">FAQ</a>
         <a href="#contact">Contact</a>
         <a href="#contact" class="btn btn--primary nav__cta" data-subject="Demande de devis">Demander un devis</a>
@@ -230,6 +231,25 @@
           <li class="step reveal"><span class="step__n">05</span><h3>Évaluation finale</h3><p>Une évaluation mesure les acquis en fin de parcours.</p></li>
           <li class="step reveal"><span class="step__n">06</span><h3>Clôture et compte rendu</h3><p>Vous recevez un rapport de formation ; les participants présents à au moins 80 % reçoivent leur attestation.</p></li>
         </ol>
+      </div>
+    </section>
+
+    <!-- ============ ACTUALITÉS (contenu : assets/js/actualites.js) ============ -->
+    <section class="section" id="actualites">
+      <div class="container">
+        <div class="news-head">
+          <div class="section__head reveal">
+            <p class="eyebrow">Actualités MDC</p>
+            <h2>Ce qui se prépare chez MDC</h2>
+            <p class="lead">Nouvelles sessions, offres de formation et événements à ne pas manquer.</p>
+          </div>
+          <div class="seg-tabs reveal" role="tablist" aria-label="Type d'actualité">
+            <button role="tab" class="seg-tab is-active" aria-selected="true" data-news="offres">Offres de formation <span class="seg-tab__n" id="nOffres">0</span></button>
+            <button role="tab" class="seg-tab" aria-selected="false" data-news="evenements">Événements <span class="seg-tab__n" id="nEvents">0</span></button>
+          </div>
+        </div>
+        <div class="news-panel is-active" role="tabpanel" data-news-panel="offres"><div class="news-grid" id="newsOffres"></div></div>
+        <div class="news-panel" role="tabpanel" data-news-panel="evenements" hidden><div class="news-grid" id="newsEvents"></div></div>
       </div>
     </section>
 
@@ -410,7 +430,7 @@
       </div>
       <div>
         <h4>MDC</h4>
-        <a href="#methode">Démarche en 6 étapes</a><a href="#engagements">Nos engagements</a><a href="#entreprises">Entreprises &amp; FMFP</a><a href="#faq">FAQ</a><a href="#contact">Contact</a>
+        <a href="#methode">Démarche en 6 étapes</a><a href="#engagements">Nos engagements</a><a href="#actualites">Actualités</a><a href="#entreprises">Entreprises &amp; FMFP</a><a href="#faq">FAQ</a><a href="#contact">Contact</a>
       </div>
       <div>
         <h4>Contact</h4>
@@ -446,6 +466,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
   <script src="assets/js/scene3d.js" defer></script>
   <script src="assets/js/catalogue.js" defer></script>
+  <script src="assets/js/actualites.js" defer></script>
   <script src="assets/js/main.js" defer></script>
 </body>
 </html>

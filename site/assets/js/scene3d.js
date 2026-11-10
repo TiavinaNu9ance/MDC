@@ -247,26 +247,26 @@
 
   /* Placement : y = position dans la page (0 = haut, 1 = bas), x = côté, s = échelle */
   var items = [
-    { make: function () { return student({ skin: 0, shirt: C.navy, screen: C.excel, glasses: true }); }, y: 0.035, x: 11.5, z: -3, s: 1.25, rx: 0.15, ry: -2.5 },
-    { make: barChart, y: 0.075, x: -12, z: -4, s: 1.05, rx: 0.25, ry: 0.5 },
-    { make: function () { return appTile(TOOLS + 'excel.svg', 'rgba(30,158,90,.45)'); }, y: 0.115, x: 12.5, z: -4, s: 0.95, ry: -0.4 },
-    { make: cubes, y: 0.16, x: 12.5, z: -5, s: 1.1 },
-    { make: function () { return appTile(TOOLS + 'powerbi.svg', 'rgba(224,161,0,.45)'); }, y: 0.235, x: -12.5, z: -4, s: 0.95, ry: 0.4 },
-    { make: spreadsheet, y: 0.2, x: -12.5, z: -4, s: 1, rx: -0.15, ry: 0.55 },
-    { make: function () { return student({ skin: 1, shirt: C.gold, screen: C.pbi, longHair: true, book: C.navy }); }, y: 0.27, x: 12, z: -3, s: 1.2, rx: 0.15, ry: -2.6 },
-    { make: sigma, y: 0.33, x: -12.5, z: -4, s: 1.1 },
-    { make: function () { return appTile(TOOLS + 'chatgpt.svg', 'rgba(116,170,156,.5)'); }, y: 0.365, x: 12.5, z: -4, s: 0.9, ry: -0.4 },
-    { make: neural, y: 0.41, x: 12, z: -4, s: 1.05 },
-    { make: function () { return student({ skin: 2, shirt: C.blue, screen: C.ia, book: C.excel }); }, y: 0.47, x: -11.5, z: -3, s: 1.2, rx: 0.15, ry: 2.5 },
-    { make: donut, y: 0.53, x: 12.5, z: -5, s: 0.95, rx: 0.6 },
-    { make: lineChart, y: 0.6, x: -12, z: -4, s: 1, ry: 0.5 },
-    { make: function () { return student({ skin: 3, shirt: C.ink, screen: C.excel, longHair: true, glasses: true }); }, y: 0.67, x: 11.5, z: -3, s: 1.2, rx: 0.15, ry: -2.5 },
-    { make: function () { return appTile(TOOLS + 'notion.png', 'rgba(120,120,120,.35)'); }, y: 0.71, x: -12.5, z: -4, s: 0.9, ry: 0.4 },
-    { make: pages, y: 0.765, x: -12, z: -4, s: 1, ry: 0.5 },
-    { make: function () { return appTile(TOOLS + 'claude.svg', 'rgba(217,119,87,.45)'); }, y: 0.555, x: -12.5, z: -5, s: 0.85, ry: 0.4 },
-    { make: barChart, y: 0.81, x: 12.5, z: -5, s: 0.9, rx: 0.3, ry: -0.6 },
-    { make: function () { return student({ skin: 1, shirt: C.navy, screen: C.pbi }); }, y: 0.88, x: -11.5, z: -3, s: 1.15, rx: 0.15, ry: 2.6 },
-    { make: cubes, y: 0.95, x: 12, z: -5, s: 1 }
+    { make: function () { return student({ skin: 0, shirt: C.navy, screen: C.excel, glasses: true }); }, y: 0.035, x: 14.5, z: -6, s: 1.25, rx: 0.15, ry: -2.5 },
+    { make: barChart, y: 0.075, x: -14.5, z: -6, s: 1.05, rx: 0.25, ry: 0.5 },
+    { make: function () { return appTile(TOOLS + 'excel.svg', 'rgba(30,158,90,.45)'); }, y: 0.115, x: 14.5, z: -6, s: 0.95, ry: -0.4 },
+    { make: cubes, y: 0.16, x: 14.5, z: -6, s: 1.1 },
+    { make: function () { return appTile(TOOLS + 'powerbi.svg', 'rgba(224,161,0,.45)'); }, y: 0.235, x: -14.5, z: -6, s: 0.95, ry: 0.4 },
+    { make: spreadsheet, y: 0.2, x: -14.5, z: -6, s: 1, rx: -0.15, ry: 0.55 },
+    { make: function () { return student({ skin: 1, shirt: C.gold, screen: C.pbi, longHair: true, book: C.navy }); }, y: 0.27, x: 14.5, z: -6, s: 1.2, rx: 0.15, ry: -2.6 },
+    { make: sigma, y: 0.33, x: -14.5, z: -6, s: 1.1 },
+    { make: function () { return appTile(TOOLS + 'chatgpt.svg', 'rgba(116,170,156,.5)'); }, y: 0.365, x: 14.5, z: -6, s: 0.9, ry: -0.4 },
+    { make: neural, y: 0.41, x: 14.5, z: -6, s: 1.05 },
+    { make: function () { return student({ skin: 2, shirt: C.blue, screen: C.ia, book: C.excel }); }, y: 0.47, x: -14.5, z: -6, s: 1.2, rx: 0.15, ry: 2.5 },
+    { make: donut, y: 0.53, x: 14.5, z: -6, s: 0.95, rx: 0.6 },
+    { make: lineChart, y: 0.6, x: -14.5, z: -6, s: 1, ry: 0.5 },
+    { make: function () { return student({ skin: 3, shirt: C.ink, screen: C.excel, longHair: true, glasses: true }); }, y: 0.67, x: 14.5, z: -6, s: 1.2, rx: 0.15, ry: -2.5 },
+    { make: function () { return appTile(TOOLS + 'notion.png', 'rgba(120,120,120,.35)'); }, y: 0.71, x: -14.5, z: -6, s: 0.9, ry: 0.4 },
+    { make: pages, y: 0.765, x: -14.5, z: -6, s: 1, ry: 0.5 },
+    { make: function () { return appTile(TOOLS + 'claude.svg', 'rgba(217,119,87,.45)'); }, y: 0.555, x: -14.5, z: -6, s: 0.85, ry: 0.4 },
+    { make: barChart, y: 0.81, x: 14.5, z: -6, s: 0.9, rx: 0.3, ry: -0.6 },
+    { make: function () { return student({ skin: 1, shirt: C.navy, screen: C.pbi }); }, y: 0.88, x: -14.5, z: -6, s: 1.15, rx: 0.15, ry: 2.6 },
+    { make: cubes, y: 0.95, x: 14.5, z: -6, s: 1 }
   ];
   if (mobile) items = items.filter(function (_, i) { return i % 2 === 0; });
 
