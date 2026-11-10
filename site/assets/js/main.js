@@ -407,14 +407,6 @@
       requestAnimationFrame(follow);
     })();
   }
-  /* Le fond change doucement de teinte au fil de la page */
-  var orbs = $('.ambient__orbs');
-  if (orbs && !reduce) {
-    window.addEventListener('scroll', function () {
-      var p = window.scrollY / Math.max(1, document.body.scrollHeight - window.innerHeight);
-      orbs.style.transform = 'rotate(' + (p * 90) + 'deg) scale(' + (1 + p * 0.15) + ')';
-    }, { passive: true });
-  }
 
   $('#year').textContent = new Date().getFullYear();
 })();
