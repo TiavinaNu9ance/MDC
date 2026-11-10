@@ -40,7 +40,7 @@ Couleurs et polices : variables en haut de `site/assets/css/style.css`.
 
 ## 4. À faire avant la mise en ligne publique
 
-- [ ] Logo : copier `D:\MDC\Logo\Logo MDC\Logo_court_sansfond.png` dans `site/assets/img/logo.png`, puis remplacer `logo.svg` par `logo.png` dans les 3 fichiers HTML (le SVG actuel est provisoire).
+- [ ] Logos : déposer `D:\MDC\site-assets.zip` sur la branche GitHub (logos MDC → `site/assets/img/logo-mdc.png`, clients → `site/assets/img/clients/`). Sans fichier, le nom du client s'affiche en texte.
 - [ ] Choisir entre le navy du logo (#0E2537) et celui du catalogue (#1B2B5E) : actuellement les deux sont utilisés.
 - [ ] Accord des clients cités dans le bandeau « Ils nous ont fait confiance » (liste reprise du catalogue 2026).
 - [ ] URL LinkedIn et Facebook (inconnues).

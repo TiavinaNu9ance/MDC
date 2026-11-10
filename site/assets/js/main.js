@@ -7,7 +7,7 @@
   var SHOW_PRICES = false;
   // Adresse Formspree (https://formspree.io) pour recevoir les messages par e-mail.
   // Laisser vide : le formulaire ouvre alors la messagerie du visiteur.
-  var FORM_ENDPOINT = '';
+  var FORM_ENDPOINT = 'contact.php';
   // Option recommandée : envoyer les demandes directement dans HubSpot (formulaire HubSpot existant).
   // Renseigner l'ID du portail et le GUID du formulaire (HubSpot > Marketing > Formulaires).
   // Le formulaire HubSpot doit contenir les champs : firstname, email, company, phone, message.
@@ -24,8 +24,7 @@
 
   /* ----- Thème clair / sombre ----- */
   $('#themeBtn').addEventListener('click', function () {
-    var current = doc.getAttribute('data-theme') ||
-      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var current = doc.getAttribute('data-theme') || 'light';
     var next = current === 'dark' ? 'light' : 'dark';
     doc.setAttribute('data-theme', next);
     try { localStorage.setItem('mdc-theme', next); } catch (e) {}
@@ -164,23 +163,158 @@
       if (s === 'Formation financée FMFP') $('input[name="fmfp"]').checked = true;
     });
   });
-  $$('.course').forEach(function (c) {
-    c.style.cursor = 'pointer';
-    c.setAttribute('tabindex', '0');
-    c.setAttribute('title', 'Demander cette formation');
-    function go() {
-      var name = $('h3', c).textContent;
-      subj.value = 'Demande : ' + name;
-      var panel = c.closest('.panel').getAttribute('data-panel');
-      dom.value = { excel: 'Excel', pbi: 'Power BI', ia: 'Intelligence artificielle', notion: 'Notion' }[panel];
-      var msg = $('#f-msg');
-      if (!msg.value) msg.value = 'Bonjour, je souhaite des informations sur la formation « ' + name + ' ».';
-      $('#contact').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
-      setTimeout(function () { $('#f-name').focus({ preventScroll: true }); }, 700);
+  /* ----- Fiche détaillée de chaque formation ----- */
+  var CAT = window.MDC_CATALOGUE || {};
+  var INCLUS = ['Test de positionnement avant la formation', 'Supports PDF, exercices corrigés et jeux de données',
+    'Contact du formateur après la formation', 'Attestation si présence ≥ 80 %'];
+  var DOMAINES = { excel: 'Excel', pbi: 'Power BI', ia: 'Intelligence artificielle', notion: 'Notion' };
+  var modal = $('#courseModal'), current = null;
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function list(arr) { return '<ul class="mlist">' + arr.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'; }
+  function openCourse(c) {
+    var id = c.getAttribute('data-id'), d = CAT[id] || {}, panel = c.closest('.panel');
+    current = c;
+    modal.style.setProperty('--c', getComputedStyle(panel).getPropertyValue('--c'));
+    $('#mLvl').textContent = $('.course__lvl', c).textContent;
+    var lg = $('.course__logo', c), ml = $('#mLogo');
+    if (lg) { ml.src = lg.getAttribute('src'); ml.hidden = false; } else ml.hidden = true;
+    $('#mTitle').textContent = $('h3', c).textContent;
+    var facts = ['<span>◷ ' + esc($('.course__meta span', c).textContent) + '</span>', '<span>' + DOMAINES[panel.getAttribute('data-panel')] + '</span>'];
+    if (SHOW_PRICES) facts.push('<span>' + fmt.format(+$('.price', c).getAttribute('data-price')) + ' Ar / participant</span>');
+    if (d.format) facts.push('<span>' + esc(d.format) + '</span>');
+    $('#mFacts').innerHTML = facts.join('');
+    var h = '';
+    if (d.resume && !d.niveau) h += '<p class="mlead">' + esc(d.resume) + '</p>';
+    var side = '';
+    if (d.niveau) side += '<div class="mbox"><h4>Niveau</h4><p>' + esc(d.niveau) + '</p></div>';
+    if (d.public) side += '<div class="mbox"><h4>Public</h4><p>' + esc(d.public) + '</p></div>';
+    if (d.prerequis) side += '<div class="mbox"><h4>Prérequis</h4><p>' + esc(d.prerequis) + '</p></div>';
+    if (side) h += '<div class="mgrid">' + side + '</div>';
+    if (d.objectifs && d.objectifs.length) h += '<section><h4>Objectifs</h4>' + list(d.objectifs) + '</section>';
+    if (d.programme && d.programme.length) {
+      h += '<section><h4>Programme</h4><ol class="mprog">' + d.programme.map(function (m, i) {
+        if (typeof m === 'string') return '<li><span class="mprog__n">' + (i + 1) + '</span><div><b>' + esc(m) + '</b></div></li>';
+        return '<li><span class="mprog__n">' + (i + 1) + '</span><div><b>' + esc(m.titre) + '</b>' + (m.points ? list(m.points) : '') + '</div></li>';
+      }).join('') + '</ol></section>';
     }
-    c.addEventListener('click', go);
-    c.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
+    if (d.contient) h += '<section><h4>Ce pack regroupe</h4>' + list(d.contient) + '</section>';
+    if (d.intro) h += '<p class="mintro">' + esc(d.intro) + '</p>';
+    if (!h) h = '<p class="mlead">Le programme détaillé de cette formation vous est envoyé sur demande.</p>';
+    h += '<section class="mincl"><h4>Inclus dans chaque formation</h4>' + list(INCLUS) + '</section>';
+    $('#mBody').innerHTML = h;
+    $('#mBody').scrollTop = 0;
+    if (modal.showModal) modal.showModal(); else modal.setAttribute('open', '');
+    doc.classList.add('modal-open');
+  }
+  function closeModal() {
+    modal.classList.add('is-closing');
+    setTimeout(function () { modal.classList.remove('is-closing'); if (modal.close) modal.close(); else modal.removeAttribute('open'); doc.classList.remove('modal-open'); if (current) current.focus(); }, reduce ? 0 : 220);
+  }
+  $$('[data-close]', modal).forEach(function (b) { b.addEventListener('click', closeModal); });
+  modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+  modal.addEventListener('cancel', function (e) { e.preventDefault(); closeModal(); });
+  $('#mQuote').addEventListener('click', function () {
+    var c = current, name = $('h3', c).textContent;
+    subj.value = 'Demande : ' + name;
+    dom.value = DOMAINES[c.closest('.panel').getAttribute('data-panel')];
+    var msg = $('#f-msg');
+    if (!msg.value) msg.value = 'Bonjour, je souhaite un devis pour la formation « ' + name + ' ».';
+    closeModal();
+    setTimeout(function () { $('#contact').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' }); }, 240);
+    setTimeout(function () { $('#f-name').focus({ preventScroll: true }); }, 900);
   });
+  $$('.course').forEach(function (c) {
+    var d = CAT[c.getAttribute('data-id')], desc = $('[data-desc]', c);
+    if (d && d.resume && desc) desc.textContent = d.resume; else if (desc) desc.remove();
+    c.addEventListener('click', function () { openCourse(c); });
+    c.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCourse(c); } });
+  });
+
+  /* ----- Actualités : offres de formation et événements ----- */
+  (function () {
+    var A = window.MDC_ACTUS || { offres: [], evenements: [] };
+    var apercu = /[?&]apercu\b/.test(location.search);
+    var LOGOS = { excel: 'assets/img/tools/excel.svg', pbi: 'assets/img/tools/powerbi.svg', ia: 'assets/img/tools/chatgpt.svg', notion: 'assets/img/tools/notion.png' };
+    var MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    function d(str) { if (!str) return null; var p = str.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+    function longDate(dt) { return dt.getDate() + ' ' + MOIS[dt.getMonth()] + ' ' + dt.getFullYear(); }
+    function badge(dt) {
+      if (!dt) return '<div class="nbadge nbadge--soon"><b>Bientôt</b></div>';
+      return '<div class="nbadge"><b>' + dt.getDate() + '</b><span>' + MOIS[dt.getMonth()] + '</span><small>' + dt.getFullYear() + '</small></div>';
+    }
+    function visible(x) { return !x.exemple || apercu; }
+    function card(x, kind, past) {
+      var dt = d(x.date), fin = d(x.fin), logo = LOGOS[x.domaine];
+      var when = dt ? (fin && fin > dt ? 'Du ' + longDate(dt) + ' au ' + longDate(fin) : longDate(dt)) + (x.heure ? ' · ' + esc(x.heure) : '') : 'Date à venir';
+      var tag = kind === 'offres' ? (x.statut || 'À venir') : (past ? 'Terminé' : (x.type || 'Événement'));
+      var meta = [when, x.lieu, x.format].filter(Boolean).map(function (m) { return '<li>' + esc(m) + '</li>'; }).join('');
+      var cta = past ? '' : (x.lien
+        ? '<a class="ncard__cta" href="' + esc(x.lien) + '" target="_blank" rel="noopener">' + (kind === 'offres' ? 'S\'inscrire' : 'En savoir plus') + ' <span aria-hidden="true">→</span></a>'
+        : '<button type="button" class="ncard__cta" data-news-sub="' + esc((kind === 'offres' ? 'Inscription : ' : 'Événement : ') + x.titre) + '">' + (kind === 'offres' ? 'Je suis intéressé' : 'Je participe') + ' <span aria-hidden="true">→</span></button>');
+      return '<article class="ncard ncard--' + kind + (past ? ' is-past' : '') + (x.exemple ? ' is-demo' : '') + '">' +
+        badge(dt) +
+        '<div class="ncard__body">' +
+          '<div class="ncard__top"><span class="ncard__tag">' + esc(tag) + '</span>' + (x.exemple ? '<span class="ncard__demo">Exemple</span>' : '') + (logo ? '<img src="' + logo + '" alt="" width="26" height="26">' : '') + '</div>' +
+          '<h3>' + esc(x.titre) + '</h3>' +
+          (x.description ? '<p>' + esc(x.description) + '</p>' : '') +
+          '<ul class="ncard__meta">' + meta + '</ul>' +
+          (x.prix ? '<p class="ncard__prix">' + esc(x.prix) + '</p>' : '') +
+          cta +
+        '</div></article>';
+    }
+    function empty(kind) {
+      return '<div class="nempty"><b>' + (kind === 'offres' ? 'Nos prochaines offres arrivent bientôt.' : 'Aucun événement programmé pour le moment.') + '</b>' +
+        '<p>Laissez-nous vos coordonnées pour être prévenu en priorité.</p><button type="button" class="btn btn--primary" data-news-sub="Être informé des actualités MDC">Être prévenu</button></div>';
+    }
+    var offres = (A.offres || []).filter(visible).filter(function (x) { var f = d(x.fin) || d(x.date); return !f || f >= today; })
+      .sort(function (a, b) { return (d(a.date) || 9e15) - (d(b.date) || 9e15); });
+    var evs = (A.evenements || []).filter(visible);
+    var futurs = evs.filter(function (x) { var t = d(x.date); return !t || t >= today; }).sort(function (a, b) { return (d(a.date) || 9e15) - (d(b.date) || 9e15); });
+    var passes = evs.filter(function (x) { var t = d(x.date); return t && t < today; }).sort(function (a, b) { return d(b.date) - d(a.date); }).slice(0, 3);
+    $('#newsOffres').innerHTML = offres.length ? offres.map(function (x) { return card(x, 'offres'); }).join('') : empty('offres');
+    $('#newsEvents').innerHTML = (futurs.length ? futurs.map(function (x) { return card(x, 'evenements'); }).join('') : empty('evenements')) +
+      passes.map(function (x) { return card(x, 'evenements', true); }).join('');
+    $('#nOffres').textContent = offres.length; $('#nEvents').textContent = futurs.length;
+    $$('.seg-tab').forEach(function (t) {
+      t.addEventListener('click', function () {
+        var k = t.getAttribute('data-news');
+        $$('.seg-tab').forEach(function (b) { var on = b === t; b.classList.toggle('is-active', on); b.setAttribute('aria-selected', String(on)); });
+        $$('.news-panel').forEach(function (p) { var on = p.getAttribute('data-news-panel') === k; p.hidden = !on; p.classList.toggle('is-active', on); });
+      });
+    });
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-news-sub]'); if (!b) return;
+      var sub = b.getAttribute('data-news-sub');
+      $('#f-subject').value = sub;
+      var msg = $('#f-msg'); if (!msg.value) msg.value = 'Bonjour, ' + (sub.indexOf('Être informé') === 0 ? 'je souhaite être informé des prochaines formations et événements MDC.' : 'je suis intéressé par : « ' + sub.replace(/^[^:]+: /, '') + ' ».');
+      $('#contact').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+      setTimeout(function () { $('#f-name').focus({ preventScroll: true }); }, 800);
+    });
+  })();
+
+  /* ----- Titres : apparition mot par mot ----- */
+  if (!reduce) {
+    $$('h2').forEach(function (h) {
+      var walker = document.createTreeWalker(h, NodeFilter.SHOW_TEXT), nodes = [], n, i = 0;
+      while ((n = walker.nextNode())) nodes.push(n);
+      nodes.forEach(function (node) {
+        var isGrad = node.parentNode.classList && node.parentNode.classList.contains('grad');
+        var frag = document.createDocumentFragment();
+        node.textContent.split(/(\s+)/).forEach(function (part) {
+          if (!part) return;
+          if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); return; }
+          var w = document.createElement('span'), inner = document.createElement('span');
+          w.className = 'wl'; inner.className = 'w' + (isGrad ? ' grad' : ''); inner.textContent = part;
+          inner.style.transitionDelay = (i++ * 0.05) + 's';
+          w.appendChild(inner); frag.appendChild(w);
+        });
+        node.parentNode.replaceChild(frag, node);
+      });
+      $$('.grad', h).forEach(function (g) { if (!g.classList.contains('w')) g.classList.add('grad--parent'); });
+      h.classList.add('split');
+    });
+  }
 
   /* ----- Formulaire ----- */
   var form = $('#contactForm'), status = $('#formStatus');
@@ -204,6 +338,15 @@
     if (!validate()) return;
     var data = new FormData(form);
     if (data.get('_gotcha')) return;
+    // Site hébergé sur Netlify : envoi par Netlify Forms (contact.php ne fonctionne pas sans PHP)
+    if (/netlify\.app$/.test(location.hostname) || doc.hasAttribute('data-netlify-forms')) {
+      form.classList.add('is-loading');
+      fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(data).toString() })
+        .then(function (r) { if (!r.ok) throw new Error(); form.reset(); status.className = 'form__status ok'; status.textContent = 'Merci ! Votre demande est envoyée, nous revenons vers vous rapidement.'; })
+        .catch(function () { status.className = 'form__status ko'; status.textContent = 'Envoi impossible. Écrivez-nous à ' + CONTACT_EMAIL + '.'; })
+        .then(function () { form.classList.remove('is-loading'); });
+      return;
+    }
     if (HUBSPOT_PORTAL_ID && HUBSPOT_FORM_GUID) {
       var details = ['Type : ' + data.get('type'), 'Formation : ' + data.get('formation'), 'Participants : ' + (data.get('participants') || '-'),
         'FMFP : ' + (data.get('fmfp') ? 'Oui' : 'Non'), 'Sujet : ' + data.get('sujet'), '', data.get('message')].join('\n');
@@ -230,8 +373,9 @@
     }
     form.classList.add('is-loading');
     fetch(FORM_ENDPOINT, { method: 'POST', body: data, headers: { Accept: 'application/json' } })
-      .then(function (r) { if (!r.ok) throw new Error(); form.reset(); status.className = 'form__status ok'; status.textContent = 'Merci ! Votre demande est envoyée, nous revenons vers vous rapidement.'; })
-      .catch(function () { status.className = 'form__status ko'; status.textContent = 'Envoi impossible. Écrivez-nous à ' + CONTACT_EMAIL + '.'; })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok || j.ok === false) throw new Error(j.message || ''); return j; }); })
+      .then(function () { form.reset(); status.className = 'form__status ok'; status.textContent = 'Merci ! Votre demande est envoyée, nous revenons vers vous rapidement.'; })
+      .catch(function (err) { status.className = 'form__status ko'; status.textContent = (err && err.message) || ('Envoi impossible. Écrivez-nous à ' + CONTACT_EMAIL + '.'); })
       .then(function () { form.classList.remove('is-loading'); });
   });
 
@@ -252,6 +396,25 @@
       });
       b.addEventListener('mouseleave', function () { b.style.transform = ''; });
     });
+  }
+
+  /* ----- Lumière qui suit la souris sur les cartes + halo global + parallaxe ----- */
+  if (!reduce && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    $$('.course:not(.course--top), .tile, .step, .value, .stat, .acc details, .form').forEach(function (el) {
+      el.classList.add('spot');
+      el.addEventListener('pointermove', function (e) {
+        var r = el.getBoundingClientRect();
+        el.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+        el.style.setProperty('--my', (e.clientY - r.top) + 'px');
+      });
+    });
+    var glow = $('.cursor-glow'), gx = 0, gy = 0, tx = 0, ty = 0;
+    window.addEventListener('pointermove', function (e) { tx = e.clientX; ty = e.clientY; glow.classList.add('on'); }, { passive: true });
+    (function follow() {
+      gx += (tx - gx) * 0.12; gy += (ty - gy) * 0.12;
+      glow.style.transform = 'translate(' + gx + 'px,' + gy + 'px)';
+      requestAnimationFrame(follow);
+    })();
   }
 
   $('#year').textContent = new Date().getFullYear();
