@@ -338,6 +338,15 @@
     if (!validate()) return;
     var data = new FormData(form);
     if (data.get('_gotcha')) return;
+    // Site hébergé sur Netlify : envoi par Netlify Forms (contact.php ne fonctionne pas sans PHP)
+    if (/netlify\.app$/.test(location.hostname) || doc.hasAttribute('data-netlify-forms')) {
+      form.classList.add('is-loading');
+      fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(data).toString() })
+        .then(function (r) { if (!r.ok) throw new Error(); form.reset(); status.className = 'form__status ok'; status.textContent = 'Merci ! Votre demande est envoyée, nous revenons vers vous rapidement.'; })
+        .catch(function () { status.className = 'form__status ko'; status.textContent = 'Envoi impossible. Écrivez-nous à ' + CONTACT_EMAIL + '.'; })
+        .then(function () { form.classList.remove('is-loading'); });
+      return;
+    }
     if (HUBSPOT_PORTAL_ID && HUBSPOT_FORM_GUID) {
       var details = ['Type : ' + data.get('type'), 'Formation : ' + data.get('formation'), 'Participants : ' + (data.get('participants') || '-'),
         'FMFP : ' + (data.get('fmfp') ? 'Oui' : 'Non'), 'Sujet : ' + data.get('sujet'), '', data.get('message')].join('\n');

@@ -364,7 +364,8 @@
           </ul>
         </div>
 
-        <form class="form reveal glow-border" id="contactForm" novalidate>
+        <form class="form reveal glow-border" id="contactForm" name="contact" method="POST" data-netlify="true" netlify-honeypot="_gotcha" novalidate>
+          <input type="hidden" name="form-name" value="contact">
           <div class="seg" role="radiogroup" aria-label="Vous êtes">
             <label><input type="radio" name="type" value="Entreprise" checked><span>Entreprise</span></label>
             <label><input type="radio" name="type" value="ONG / Institution"><span>ONG / Institution</span></label>
