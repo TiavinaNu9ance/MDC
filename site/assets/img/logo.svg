@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="MDC">
+  <!-- Pictogramme provisoire inspiré du logo MDC (trois cubes en fil de fer).
+       Remplacer par le logo officiel : D:\MDC\Logo\Logo MDC\Logo_court_sansfond.png -->
+  <rect width="64" height="64" rx="16" fill="#0E2537"/>
+  <g fill="none" stroke-linejoin="round" stroke-width="2.2">
+    <g stroke="#FFFFFF">
+      <path d="M20 30l8-4.5 8 4.5v9l-8 4.5-8-4.5z"/><path d="M20 30l8 4.5 8-4.5M28 34.5v9"/>
+    </g>
+    <g stroke="#C89B2A">
+      <path d="M28 16l8-4.5 8 4.5v9l-8 4.5-8-4.5z"/><path d="M28 16l8 4.5 8-4.5M36 20.5v9"/>
+    </g>
+    <g stroke="#FFFFFF" opacity=".75">
+      <path d="M36 34l8-4.5 8 4.5v9l-8 4.5-8-4.5z"/><path d="M36 34l8 4.5 8-4.5M44 38.5v9"/>
+    </g>
+  </g>
+</svg>
