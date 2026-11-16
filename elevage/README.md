@@ -56,7 +56,7 @@ Filtres : lot / race, période (7 j, 30 j, mois, 90 j, depuis le début, journé
 4. Extensions > Apps Script :
    - remplacer le contenu de `Code.gs` par `apps-script/Code.gs` ;
    - créer un fichier HTML nommé `Index` avec `apps-script/Index.html` ;
-   - Paramètres du projet > cocher « Afficher le fichier manifeste », coller `apps-script/appsscript.json`.
+   - Paramètres du projet > cocher « Afficher le fichier manifeste », remplacer **tout** le contenu de `appsscript.json` par `apps-script/appsscript.json` (facultatif : il ne fixe que le fuseau horaire et le moteur V8).
 5. Exécuter `initialiserBase` une fois et autoriser (vérifie onglets et paramètres).
 6. Déployer > Nouveau déploiement > Application Web : Exécuter en tant que **Moi** ; accès : **Seulement moi**, ou votre domaine Google Workspace, ou les comptes avec qui le classeur est partagé.
 7. Ouvrir l'URL `…/exec`. Menu **Élevage** dans le Sheet : ouvrir le tableau de bord, vérifier les données.
