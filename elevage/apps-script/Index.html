@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tableau de bord – Élevage</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f4f6f3; --carte:#ffffff; --texte:#1c2420; --doux:#5f6b64; --ligne:#e3e8e4;
+  --vert:#1f7a4d; --vert-f:#1f4e3d; --vert-c:#e3f3ea; --rouge:#c0392b; --rouge-c:#fbe9e7;
+  --orange:#d98a00; --orange-c:#fff4dc; --bleu:#2563eb; --bleu-c:#e8efff; --jaune:#fff7d6;
+  --ombre:0 1px 2px rgba(0,0,0,.05),0 2px 8px rgba(0,0,0,.04); --r:12px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--texte);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif}
+header{background:var(--vert-f);color:#fff;padding:14px 20px 0}
+.titre{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.titre h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.2px}
+.titre .sous{opacity:.8;font-size:13px}
+nav{display:flex;gap:2px;overflow-x:auto;margin-top:12px;scrollbar-width:none}
+nav button{background:none;border:0;color:#cfe3d8;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer;border-radius:8px 8px 0 0;white-space:nowrap}
+nav button.actif{background:var(--bg);color:var(--vert-f)}
+.filtres{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--ligne);padding:10px 20px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.filtres label[hidden]{display:none}
+.filtres label{display:flex;flex-direction:column;font-size:11px;color:var(--doux);font-weight:600;text-transform:uppercase;letter-spacing:.4px;gap:3px}
+select,input,textarea{font:inherit;padding:7px 9px;border:1px solid #cdd5cf;border-radius:8px;background:#fff;color:var(--texte);min-width:0}
+input[type=number]{width:100%}
+.btn{background:var(--vert);color:#fff;border:0;border-radius:8px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}
+.btn.second{background:#fff;color:var(--vert);border:1px solid var(--vert)}
+.btn:disabled{opacity:.5;cursor:wait}
+.infoper{font-size:12px;color:var(--doux);margin-left:auto;align-self:center}
+main{padding:16px 20px 40px;max-width:1400px;margin:0 auto}
+.page{display:none}.page.actif{display:block}
+.lecture{background:var(--carte);border-left:4px solid var(--vert);border-radius:var(--r);padding:12px 16px;box-shadow:var(--ombre);margin-bottom:14px}
+.grille{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.kpi{background:var(--carte);border-radius:var(--r);padding:12px 14px;box-shadow:var(--ombre);border-top:3px solid var(--ligne)}
+.kpi .l{font-size:11px;font-weight:700;color:var(--doux);text-transform:uppercase;letter-spacing:.4px}
+.kpi .v{white-space:nowrap;font-size:24px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px;color:var(--doux)}
+.kpi.ok{border-top-color:var(--vert)}.kpi.ko{border-top-color:var(--rouge)}.kpi.moy{border-top-color:var(--orange)}.kpi.neutre{border-top-color:var(--bleu)}
+.kpi.ok .v{color:var(--vert)}.kpi.ko .v{color:var(--rouge)}.kpi.moy .v{color:var(--orange)}
+.cols{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));margin-top:14px}
+.carte{background:var(--carte);border-radius:var(--r);padding:14px 16px;box-shadow:var(--ombre);min-width:0}
+.carte h2{font-size:15px;margin:0 0 4px}
+.carte .aide{font-size:12px;color:var(--doux);margin:0 0 10px}
+.graph{position:relative;height:280px}
+.graph.haut{height:340px}
+.tab{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;border-bottom:1px solid var(--ligne);text-align:right;white-space:nowrap}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--doux);background:#fafbfa;position:sticky;top:0}
+td:first-child,th:first-child{text-align:left}
+tr.total td{font-weight:700;background:#f6f8f6}
+td.g{text-align:left;white-space:normal}td.t{text-align:left}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700}
+.pill.ok{background:var(--vert-c);color:var(--vert)}.pill.ko{background:var(--rouge-c);color:var(--rouge)}.pill.moy{background:var(--orange-c);color:#9a6200}.pill.info{background:var(--bleu-c);color:var(--bleu)}
+.c-ok{color:var(--vert);font-weight:600}.c-ko{color:var(--rouge);font-weight:600}.c-moy{color:#9a6200;font-weight:600}
+.alertes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.alertes li{padding:8px 10px;border-radius:8px;font-size:13px}
+.alertes .rouge{background:var(--rouge-c)}.alertes .orange{background:var(--orange-c)}.alertes .info{background:var(--bleu-c)}
+.barre{height:10px;background:#edf0ee;border-radius:99px;overflow:hidden;min-width:90px}
+.barre span{display:block;height:100%;border-radius:99px}
+.objectif{display:grid;grid-template-columns:minmax(160px,1.6fr) 1fr 1fr minmax(110px,1.2fr) 165px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--ligne)}
+.objectif .lib{font-weight:600}.objectif .u{font-size:12px;color:var(--doux);font-weight:400}
+.groupe{font-size:12px;font-weight:700;color:var(--vert-f);text-transform:uppercase;letter-spacing:.5px;margin:18px 0 2px}
+.saisie-grille td{padding:4px}.saisie-grille input{width:72px;text-align:right}
+.form{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+.form label{display:flex;flex-direction:column;font-size:12px;color:var(--doux);gap:3px;font-weight:600}
+.msg{margin-top:10px;font-size:13px}
+.chargement{position:fixed;inset:0;background:rgba(244,246,243,.7);display:flex;align-items:center;justify-content:center;z-index:50;font-weight:600;color:var(--vert-f)}
+.chargement[hidden]{display:none}
+.vide{color:var(--doux);font-style:italic;padding:10px 0}
+.hm{border-radius:4px;padding:3px 6px;display:inline-block;min-width:44px}
+@media (max-width:640px){
+  header{padding:12px 16px 0}.filtres{padding:10px 16px}main{padding:14px 16px 40px}
+  .cols{grid-template-columns:1fr}.kpi .v{font-size:22px}.grille{grid-template-columns:repeat(2,1fr)}
+  .objectif{grid-template-columns:1fr 1fr}.objectif .lib{grid-column:1/-1}.infoper{margin-left:0}
+}
+@media print{nav,.filtres .btn,#page-saisie{display:none}.page{display:block!important;break-after:page}body{background:#fff}}
+</style>
+</head>
+<body>
+<header>
+  <div class="titre"><h1 id="nomElevage">Tableau de bord – Élevage</h1><span class="sous">Suivi des poules pondeuses</span></div>
+  <nav id="onglets">
+    <button data-p="synthese" class="actif">Synthèse</button>
+    <button data-p="production">Production</button>
+    <button data-p="lots">Lots & effectifs</button>
+    <button data-p="ventes">Ventes & stock</button>
+    <button data-p="rentabilite">Rentabilité</button>
+    <button data-p="objectifs">Objectifs</button>
+    <button data-p="saisie">Saisie</button>
+  </nav>
+</header>
+
+<div class="filtres" id="barreFiltres">
+  <label>Lot / race<select id="fSel"><option>Tous</option></select></label>
+  <label>Période<select id="fPer">
+    <option value="7j">7 derniers jours</option><option value="30j">30 derniers jours</option>
+    <option value="mois">Mois en cours</option><option value="90j">90 derniers jours</option>
+    <option value="debut" selected>Depuis le début</option><option value="jour">Journée (jour choisi)</option>
+    <option value="perso">Personnalisée…</option></select></label>
+  <label id="lDeb" hidden>Du<input type="date" id="fDeb"></label>
+  <label id="lFin" hidden>Au<input type="date" id="fFin"></label>
+  <label>Jour de référence<input type="date" id="fJour" title="Vide = dernier jour saisi"></label>
+  <button class="btn" id="bMaj">Actualiser</button>
+  <span class="infoper" id="infoPer"></span>
+</div>
+
+<main>
+  <!-- SYNTHÈSE -->
+  <section class="page actif" id="page-synthese">
+    <div class="lecture" id="lecture">Chargement…</div>
+    <div class="grille" id="kpis"></div>
+    <div class="cols">
+      <div class="carte"><h2>Taux de ponte par semaine</h2><p class="aide">Œufs collectés ÷ poules en ponte, comparé à l'objectif pondéré des races (sélection).</p><div class="graph"><canvas id="gTauxHebdo"></canvas></div></div>
+      <div class="carte"><h2>Œufs collectés et vendus par semaine</h2><p class="aide">Collectés : sélection. Vendus et offerts : tous lots (les ventes ne sont pas saisies par lot).</p><div class="graph"><canvas id="gOeufsHebdo"></canvas></div></div>
+    </div>
+    <div class="cols">
+      <div class="carte"><h2>Points d'attention</h2><p class="aide">Calculés automatiquement à la date de référence.</p><ul class="alertes" id="alertes"></ul></div>
+      <div class="carte"><h2>Par race · couvaison et stock</h2><p class="aide">Œufs mis en couveuse (période et cumul) et stock des races gardées à part.</p><div class="tab" id="tRaces"></div></div>
+    </div>
+  </section>
+
+  <!-- PRODUCTION -->
+  <section class="page" id="page-production">
+    <div class="grille" id="kpisProd"></div>
+    <div class="cols">
+      <div class="carte"><h2>Œufs collectés par jour et par lot</h2><p class="aide">Depuis le début du suivi jusqu'à la date de référence.</p><div class="graph haut"><canvas id="gCollJour"></canvas></div></div>
+      <div class="carte"><h2>Taux de ponte par jour</h2><p class="aide">Taux global de la sélection (moyenne mobile 7 jours) et objectif.</p><div class="graph haut"><canvas id="gTauxJour"></canvas></div></div>
+    </div>
+    <div class="carte" style="margin-top:14px"><h2>14 derniers jours – ponte par lot</h2><p class="aide">Nombre d'œufs et taux de ponte. Vert = objectif atteint, orange = au moins 90 % de l'objectif, rouge = en dessous.</p><div class="tab" id="t14"></div></div>
+    <div class="carte" style="margin-top:14px"><h2>Production mensuelle</h2><div class="tab" id="tProdMois"></div></div>
+  </section>
+
+  <!-- LOTS -->
+  <section class="page" id="page-lots">
+    <div class="carte"><h2>Situation des lots</h2><p class="aide">Âge exact et effectifs à la date de référence ; taux de ponte sur la période. Écart en points par rapport à l'objectif de la race.</p><div class="tab" id="tLots"></div></div>
+    <div class="cols">
+      <div class="carte"><h2>Bilan volailles de la période</h2><p class="aide">Stock initial + entrées − décès − sorties = stock final.</p><div class="tab" id="tBilanVol"></div></div>
+      <div class="carte"><h2>Effectif et mortalité par mois</h2><div class="graph"><canvas id="gEffectif"></canvas></div></div>
+    </div>
+    <div class="carte" style="margin-top:14px"><h2 id="titreJour">Situation journalière</h2><p class="aide">Détail du jour de référence, par lot.</p><div class="tab" id="tJour"></div></div>
+  </section>
+
+  <!-- VENTES -->
+  <section class="page" id="page-ventes">
+    <div class="grille" id="kpisVentes"></div>
+    <div class="cols">
+      <div class="carte"><h2>Bilan des œufs (tous lots)</h2><p class="aide">Stock initial + collectés − cassés − couveuse − vendus − offerts = stock final.</p><div class="tab" id="tBilanOeufs"></div></div>
+      <div class="carte"><h2>Stock d'œufs par jour</h2><p class="aide">Stock total en fin de journée (toutes races).</p><div class="graph"><canvas id="gStock"></canvas></div></div>
+    </div>
+    <div class="cols">
+      <div class="carte"><h2>Ventes mensuelles</h2><div class="graph"><canvas id="gVentesMois"></canvas></div></div>
+      <div class="carte"><h2>Meilleurs clients (période)</h2><div class="tab" id="tClients"></div></div>
+    </div>
+    <div class="carte" style="margin-top:14px"><h2>Dernières ventes</h2><p class="aide" id="aideOffre"></p><div class="tab" id="tVentes"></div></div>
+  </section>
+
+  <!-- RENTABILITÉ -->
+  <section class="page" id="page-rentabilite">
+    <div class="grille" id="kpisRent"></div>
+    <div class="cols">
+      <div class="carte"><h2>Compte de résultat de la période</h2><div class="tab" id="tResultat"></div></div>
+      <div class="carte"><h2>Indicateurs par œuf</h2><div class="tab" id="tParOeuf"></div></div>
+    </div>
+    <div class="carte" style="margin-top:14px"><h2>Évolution mensuelle</h2><p class="aide">Chiffre d'affaires, coûts (provende + autres charges) et marge nette par mois, tous lots.</p><div class="graph haut"><canvas id="gRentMois"></canvas></div><div class="tab" id="tRentMois" style="margin-top:12px"></div></div>
+    <div class="cols">
+      <div class="carte"><h2>Provende par lot (période)</h2><p class="aide">Calculée : poules × ration de la race × prix du kg à la date.</p><div class="tab" id="tProvende"></div></div>
+      <div class="carte"><h2>Charges saisies (période)</h2><div class="tab" id="tCharges"></div></div>
+    </div>
+  </section>
+
+  <!-- OBJECTIFS -->
+  <section class="page" id="page-objectifs">
+    <div class="carte"><h2>Avancement des objectifs</h2><p class="aide" id="aideObj"></p><div id="listeObj"></div></div>
+    <div class="cols">
+      <div class="carte"><h2>Effectif vers l'objectif</h2><p class="aide">Poules et poules en ponte en fin de mois, comparées aux cibles.</p><div class="graph"><canvas id="gObjEff"></canvas></div></div>
+      <div class="carte"><h2>Ventes mensuelles vers l'objectif</h2><p class="aide">Œufs vendus par mois comparés à la cible mensuelle.</p><div class="graph"><canvas id="gObjVentes"></canvas></div></div>
+    </div>
+  </section>
+
+  <!-- SAISIE -->
+  <section class="page" id="page-saisie">
+    <div class="carte">
+      <h2>Journal du jour</h2><p class="aide">Une ligne par lot. Les valeurs déjà saisies pour cette date sont chargées et peuvent être corrigées.</p>
+      <div class="form" style="margin-bottom:10px"><label>Date<input type="date" id="sDate"></label><label>&nbsp;<button class="btn second" id="bCharger">Charger la date</button></label></div>
+      <div class="tab"><table class="saisie-grille" id="tSaisie"></table></div>
+      <button class="btn" id="bJournal" style="margin-top:10px">Enregistrer le journal</button><div class="msg" id="mJournal"></div>
+    </div>
+    <div class="cols">
+      <div class="carte"><h2>Nouvelle vente</h2>
+        <div class="form">
+          <label>Date<input type="date" id="vDate"></label><label>Client<input id="vClient" list="dlClients"></label>
+          <label>Œufs achetés<input type="number" min="0" id="vQte"></label><label>Prix unitaire (Ar)<input type="number" min="0" id="vPrix"></label>
+          <label>Cadeaux hors offre<input type="number" min="0" id="vCad"></label><label>Observation<input id="vObs"></label>
+        </div><datalist id="dlClients"></datalist>
+        <p class="aide" id="vCalc" style="margin-top:8px"></p>
+        <button class="btn" id="bVente">Enregistrer la vente</button><div class="msg" id="mVente"></div>
+      </div>
+      <div class="carte"><h2>Nouvelle charge</h2>
+        <div class="form">
+          <label>Date<input type="date" id="cDate"></label><label>Type<select id="cType"><option>Variable</option><option>Fixe</option></select></label>
+          <label>Catégorie<select id="cCat"></select></label><label>Lot<select id="cLot"><option>Tous</option></select></label>
+          <label>Libellé<input id="cLib"></label><label>Montant (Ar)<input type="number" min="0" id="cMont"></label>
+        </div>
+        <button class="btn" id="bCharge" style="margin-top:10px">Enregistrer la charge</button><div class="msg" id="mCharge"></div>
+      </div>
+    </div>
+  </section>
+</main>
+<div class="chargement" id="chargement">Calcul du tableau de bord…</div>
+
+<script>
+/* ---------- Appel serveur (google.script.run, ou simulation locale) ---------- */
+function appel(nom, arg) {
+  return new Promise(function (ok, ko) {
+    if (window.google && google.script && google.script.run) {
+      google.script.run.withSuccessHandler(ok).withFailureHandler(ko)[nom](arg);
+    } else if (window.SIMULATION && window.SIMULATION[nom]) {
+      try { ok(window.SIMULATION[nom](arg)); } catch (e) { ko(e); }
+    } else ko(new Error('Serveur indisponible'));
+  });
+}
+
+/* ---------- Formatage ---------- */
+var nf = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+function n(x) { return x === null || x === undefined || isNaN(x) ? '–' : nf.format(Math.round(x)); }
+function p(x, d) { return x === null || x === undefined || isNaN(x) ? '–' : (x * 100).toLocaleString('fr-FR', { minimumFractionDigits: d === undefined ? 1 : d, maximumFractionDigits: d === undefined ? 1 : d }) + ' %'; }
+function ar(x) { if (x === null || isNaN(x)) return '–'; var a = Math.abs(x); return (a >= 1e6 ? (x / 1e6).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' M' : n(x)) + ' Ar'; }
+function d(iso) { return iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : ''; }
+function dc(iso) { return iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : ''; }
+function moisLib(ym) { var m = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']; return m[+ym.slice(5, 7) - 1] + ' ' + ym.slice(2, 4); }
+function esc(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function $(id) { return document.getElementById(id); }
+function classeTaux(t, obj) { if (t === null || !obj) return ''; return t >= obj ? 'ok' : (t >= 0.9 * obj ? 'moy' : 'ko'); }
+function table(entetes, lignes, total) {
+  var h = '<table><thead><tr>' + entetes.map(function (e) { return '<th>' + e + '</th>'; }).join('') + '</tr></thead><tbody>';
+  h += lignes.map(function (l) { return '<tr>' + l.map(function (c, i) { return '<td' + (i && !estNum(c) ? ' class="t"' : '') + '>' + c + '</td>'; }).join('') + '</tr>'; }).join('');
+  if (total) h += '<tr class="total">' + total.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>';
+  return h + '</tbody></table>';
+}
+function estNum(c) { var t = String(c).replace(/<[^>]*>/g, '').trim(); return t === '' || /^[-−+–]?[\d\s\u202f\u00a0,.%–]*( ?M)?( Ar)?$/.test(t) || /^\d{2}\/\d{2}/.test(t); }
+function kpi(l, v, s, cl) { return '<div class="kpi ' + (cl || '') + '"><div class="l">' + l + '</div><div class="v">' + v + '</div><div class="s">' + (s || '') + '</div></div>'; }
+
+/* ---------- Graphiques ---------- */
+var COUL = ['#1f7a4d', '#2563eb', '#d98a00', '#9333ea', '#0891b2', '#c0392b', '#65a30d', '#db2777', '#475569', '#ca8a04'];
+var graphs = {};
+Chart.defaults.font.family = '-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif';
+Chart.defaults.color = '#5f6b64';
+Chart.defaults.plugins.legend.labels.boxWidth = 12;
+function graph(id, cfg) {
+  if (graphs[id]) graphs[id].destroy();
+  cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false } }, cfg.options || {});
+  graphs[id] = new Chart($(id), cfg);
+}
+var axePct = { ticks: { callback: function (v) { return Math.round(v * 100) + ' %'; } }, beginAtZero: true, grid: { color: '#eef1ef' } };
+var axeN = { beginAtZero: true, ticks: { callback: function (v) { return nf.format(v); } }, grid: { color: '#eef1ef' } };
+var tipPct = { callbacks: { label: function (c) { return c.dataset.label + ' : ' + p(c.raw); } } };
+function moyMobile(a, k) { return a.map(function (_, i) { var s = 0, c = 0; for (var j = Math.max(0, i - k + 1); j <= i; j++) if (a[j] !== null) { s += a[j]; c++; } return c ? s / c : null; }); }
+
+/* ---------- Rendu ---------- */
+var D = null;
+function rendre(r) {
+  D = r;
+  if (r.vide) { $('lecture').textContent = r.message; return; }
+  $('nomElevage').textContent = 'Tableau de bord – ' + r.nom;
+  document.title = 'Tableau de bord – ' + r.nom;
+  remplirListes(r);
+  var f = r.filtres, k = r.kpi;
+  $('infoPer').textContent = 'Situation au ' + d(f.fin) + ' · période du ' + d(f.debut) + ' au ' + d(f.fin) + ' (' + f.nbJours + ' j)';
+  $('lecture').innerHTML = '<b>Lecture rapide · </b>' + esc(r.lecture);
+
+  // Synthèse
+  var clT = classeTaux(k.tauxPonte, k.objectifPonte);
+  $('kpis').innerHTML = [
+    kpi('Poules', n(k.poules), p(div(k.enPonte, k.poules), 0) + ' en ponte', 'neutre'),
+    kpi('Poules en ponte', n(k.enPonte), '≥ seuil de ponte ou déjà en ponte'),
+    kpi('Poulettes', n(k.poulettes), p(div(k.poulettes, k.poules), 0) + ' de l\'effectif'),
+    kpi('Coqs', n(k.coqs), k.coqs ? '1 coq pour ' + (k.poules / k.coqs).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' poules' : ''),
+    kpi('Taux de ponte', p(k.tauxPonte), 'Objectif : ' + p(k.objectifPonte, 0), clT),
+    kpi('Réalisé vs attendu', p(k.realiseVsAttendu, 0), n(k.collectes) + ' / ' + n(k.attendus) + ' œufs', classeTaux(k.realiseVsAttendu, 1)),
+    kpi('Œufs collectés', n(k.collectes), '≈ ' + n(k.collectesParJour) + ' œufs / jour'),
+    kpi('Œufs vendus', n(k.vendus), 'CA : ' + ar(k.ca) + ' · tous lots'),
+    kpi('Œufs offerts', n(k.offerts), 'offre ' + n(k.offertsOffre) + ' + cadeaux ' + n(k.cadeaux)),
+    kpi('Stock d\'œufs (fin)', n(k.stockFin), k.stockAPartFin ? 'dont ' + n(k.stockAPartFin) + ' gardés à part · ≈ ' + k.joursDeStock.toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' j de vente' : '≈ ' + k.joursDeStock.toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' j de vente', 'neutre'),
+    kpi('Taux de casse', p(k.tauxCasse), 'Plafond : ' + p(k.plafondCasse, 0), k.tauxCasse <= k.plafondCasse ? 'ok' : 'ko'),
+    kpi('Mortalité cumulée', p(k.mortaliteCumulee), 'Plafond : ' + p(k.plafondMortalite, 0), k.mortaliteCumulee <= k.plafondMortalite ? 'ok' : 'ko')
+  ].join('');
+  var H = r.hebdo;
+  graph('gTauxHebdo', { type: 'line', data: { labels: H.map(function (h) { return dc(h.debut); }), datasets: [
+    { label: 'Taux de ponte', data: H.map(function (h) { return h.tauxPonte; }), borderColor: COUL[0], backgroundColor: 'rgba(31,122,77,.12)', fill: true, tension: .3, pointRadius: 2 },
+    { label: 'Objectif', data: H.map(function (h) { return h.objectif; }), borderColor: COUL[2], borderDash: [6, 4], pointRadius: 0 }] },
+    options: { scales: { y: axePct }, plugins: { tooltip: tipPct } } });
+  graph('gOeufsHebdo', { type: 'bar', data: { labels: H.map(function (h) { return dc(h.debut); }), datasets: [
+    { label: 'Collectés', data: H.map(function (h) { return h.collectes; }), backgroundColor: COUL[0] },
+    { label: 'Vendus', data: H.map(function (h) { return h.vendus; }), backgroundColor: COUL[1] },
+    { label: 'Offerts', data: H.map(function (h) { return h.offerts; }), backgroundColor: COUL[2] }] }, options: { scales: { y: axeN } } });
+  $('alertes').innerHTML = r.alertes.length ? r.alertes.map(function (a) { return '<li class="' + a.niveau + '">' + esc(a.texte) + '</li>'; }).join('') : '<li class="info">Aucun point d\'attention.</li>';
+  $('tRaces').innerHTML = table(['Race', 'Poules', 'En ponte', 'Taux ponte', 'Collectés', 'Couveuse (pér.)', 'Couveuse cumul', '% couvés', 'Stock à part'],
+    r.parRace.map(function (x) { return [esc(x.race), n(x.poules), n(x.enPonte), '<span class="c-' + classeTaux(x.tauxPonte, x.objectif) + '">' + p(x.tauxPonte) + '</span>', n(x.collectes), n(x.couveuse), n(x.couveuseCumul), p(x.partCouvee), x.aPart ? n(x.stockFin) : '—']; }));
+
+  // Production
+  $('kpisProd').innerHTML = [
+    kpi('Taux de ponte', p(k.tauxPonte), 'Objectif : ' + p(k.objectifPonte, 0), clT),
+    kpi('Œufs collectés', n(k.collectes), '≈ ' + n(k.collectesParJour) + ' / jour'),
+    kpi('Œufs attendus', n(k.attendus), 'pondeuses × objectif race'),
+    kpi('Écart vs attendus', n(k.collectes - k.attendus), 'œufs', k.collectes >= k.attendus ? 'ok' : 'ko'),
+    kpi('Œufs cassés', n(k.casses), p(k.tauxCasse) + ' des collectés', k.tauxCasse <= k.plafondCasse ? 'ok' : 'ko'),
+    kpi('Mis en couveuse', n(k.couveuse), 'sur la période')
+  ].join('');
+  var Q = r.quotidien, noms = Object.keys(Q.collectesParLot);
+  graph('gCollJour', { type: 'bar', data: { labels: Q.jours.map(dc), datasets: noms.map(function (l, i) { return { label: l, data: Q.collectesParLot[l], backgroundColor: COUL[i % COUL.length], stack: 's' }; }) },
+    options: { scales: { x: { stacked: true, ticks: { maxTicksLimit: 12 } }, y: Object.assign({ stacked: true }, axeN) }, plugins: { legend: { position: 'bottom' } } } });
+  graph('gTauxJour', { type: 'line', data: { labels: Q.jours.map(dc), datasets: [
+    { label: 'Taux de ponte (jour)', data: Q.tauxGlobal, borderColor: 'rgba(31,122,77,.35)', pointRadius: 0, borderWidth: 1 },
+    { label: 'Moyenne 7 jours', data: moyMobile(Q.tauxGlobal, 7), borderColor: COUL[0], pointRadius: 0, borderWidth: 2.5, tension: .3 },
+    { label: 'Objectif', data: Q.objectif, borderColor: COUL[2], borderDash: [6, 4], pointRadius: 0 }] },
+    options: { scales: { y: axePct, x: { ticks: { maxTicksLimit: 12 } } }, plugins: { tooltip: tipPct, legend: { position: 'bottom' } } } });
+  var objLot = {}; r.lots.forEach(function (l) { objLot[l.lot] = l.objectif; });
+  var nomsJ = noms.filter(function (l) { return r.derniersJours.some(function (j) { return j.lots[l] && (j.lots[l].oeufs || j.lots[l].taux !== null); }); });
+  $('t14').innerHTML = table(['Date'].concat(nomsJ.map(esc)).concat(['Total', 'Taux global']),
+    r.derniersJours.slice().reverse().map(function (j) {
+      return [d(j.date)].concat(nomsJ.map(function (l) { var x = j.lots[l]; if (!x) return '–'; var c = classeTaux(x.taux, objLot[l]); return '<span class="hm ' + (c ? 'pill ' + c : '') + '">' + n(x.oeufs) + (x.taux !== null ? ' · ' + p(x.taux, 0) : '') + '</span>'; }))
+        .concat(['<b>' + n(j.total) + '</b>', '<span class="c-' + classeTaux(j.taux, j.objectif) + '">' + p(j.taux) + '</span>']);
+    }));
+  $('tProdMois').innerHTML = table(['Mois', 'Collectés', 'Taux de ponte', 'Objectif', 'Poules (fin)', 'En ponte (fin)', 'Vendus', 'Stock (fin)'],
+    r.mensuel.map(function (m) { return [moisLib(m.mois), n(m.collectes), '<span class="c-' + classeTaux(m.tauxPonte, m.objectif) + '">' + p(m.tauxPonte) + '</span>', p(m.objectif, 0), n(m.poules), n(m.enPonte), n(m.vendus), n(m.stockFin)]; }));
+
+  // Lots
+  var L = r.lots, tot = L.reduce(function (t, l) { t.p += l.poules; t.c += l.coqs; t.e += l.enPonte; return t; }, { p: 0, c: 0, e: 0 });
+  $('tLots').innerHTML = table(['Lot', 'Race', 'Mise en place', 'Âge exact', 'Statut', 'Poules', 'Coqs', 'En ponte', 'Taux ponte', 'Objectif', 'Écart (pts)', 'Mortalité cum.'],
+    L.map(function (l) {
+      var st = l.statut === 'En ponte' ? 'ok' : (l.statut === 'Pré-ponte' ? 'moy' : 'info');
+      return ['<b>' + esc(l.lot) + '</b>', esc(l.race), d(l.miseEnPlace), l.age, '<span class="pill ' + st + '">' + l.statut + '</span>', n(l.poules), n(l.coqs), n(l.enPonte),
+        l.aPondu ? '<span class="c-' + classeTaux(l.tauxPonte, l.objectif) + '">' + p(l.tauxPonte) + '</span>' : '–', p(l.objectif, 0),
+        l.aPondu ? '<span class="c-' + (l.ecartPts >= 0 ? 'ok' : 'ko') + '">' + (l.ecartPts > 0 ? '+' : '') + l.ecartPts.toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + '</span>' : '–',
+        '<span class="c-' + (l.mortalite <= r.kpi.plafondMortalite ? 'ok' : 'ko') + '">' + p(l.mortalite) + '</span>'];
+    }), ['TOTAL', '', '', '', '', n(tot.p), n(tot.c), n(tot.e), '<span class="c-' + clT + '">' + p(k.tauxPonte) + '</span>', p(k.objectifPonte, 0), ((k.tauxPonte - k.objectifPonte) * 100).toLocaleString('fr-FR', { maximumFractionDigits: 1 }), p(k.mortaliteCumulee)]);
+  var B = r.bilanVolailles;
+  $('tBilanVol').innerHTML = table(['', 'Poules', 'Coqs'], [
+    ['Stock initial (' + d(f.debut) + ')', n(B.poules.initial), n(B.coqs.initial)], ['+ Entrées', n(B.poules.entrees), n(B.coqs.entrees)],
+    ['− Décès', n(B.poules.deces), n(B.coqs.deces)], ['− Vendues / réformées / manquants', n(B.poules.sorties), n(B.coqs.sorties)]],
+    ['Stock final (' + d(f.fin) + ')', n(B.poules.final), n(B.coqs.final)]) + '<p class="aide" style="margin-top:8px">Mortalité de la période (poules) : <b>' + p(B.mortalitePeriode) + '</b></p>';
+  var M = r.mensuel;
+  graph('gEffectif', { data: { labels: M.map(function (m) { return moisLib(m.mois); }), datasets: [
+    { type: 'bar', label: 'Poules (fin de mois)', data: M.map(function (m) { return m.poules; }), backgroundColor: 'rgba(31,122,77,.75)', yAxisID: 'y' },
+    { type: 'bar', label: 'Décès du mois', data: M.map(function (m) { return m.deces; }), backgroundColor: 'rgba(192,57,43,.75)', yAxisID: 'y' },
+    { type: 'line', label: 'Mortalité du mois', data: M.map(function (m) { return m.mortalite; }), borderColor: COUL[2], yAxisID: 'y2', tension: .3 }] },
+    options: { scales: { y: axeN, y2: Object.assign({ position: 'right', grid: { display: false } }, { ticks: axePct.ticks, beginAtZero: true }) } } });
+  $('titreJour').textContent = 'Situation journalière du ' + d(f.fin);
+  var S = r.situationJour, sj = function (c) { return S.reduce(function (t, x) { return t + x[c]; }, 0); };
+  $('tJour').innerHTML = table(['Lot', 'Poules (fin)', 'Entrées', 'Décès', 'Sorties', 'Coqs', 'Collectés', 'Cassés', 'Couveuse', 'En ponte', 'Taux ponte', 'Écart vs attendus', 'Saisi'],
+    S.map(function (s) { return [esc(s.lot), n(s.poules), n(s.entrees), s.deces ? '<span class="c-ko">' + n(s.deces) + '</span>' : '0', n(s.sorties), n(s.coqs), n(s.collectes), n(s.casses), n(s.couveuse), n(s.enPonte), s.tauxPonte === null ? '–' : '<span class="c-' + classeTaux(s.tauxPonte, objLot[s.lot]) + '">' + p(s.tauxPonte) + '</span>', n(s.ecart), s.saisi ? '<span class="pill ok">oui</span>' : '<span class="pill moy">non</span>']; }),
+    ['TOTAL', n(sj('poules')), n(sj('entrees')), n(sj('deces')), n(sj('sorties')), n(sj('coqs')), n(sj('collectes')), n(sj('casses')), n(sj('couveuse')), n(sj('enPonte')), p(div(sj('collectes'), sj('enPonte'))), n(sj('ecart')), '']);
+
+  // Ventes
+  $('kpisVentes').innerHTML = [
+    kpi('Œufs vendus', n(k.vendus), '≈ ' + n(k.vendus / f.nbJours) + ' / jour'),
+    kpi('Chiffre d\'affaires', ar(k.ca), 'prix moyen ' + n(k.prixMoyen) + ' Ar', 'neutre'),
+    kpi('Offerts (offre)', n(k.offertsOffre), 'remise effective ' + p(k.remiseOffre)),
+    kpi('Cadeaux hors offre', n(k.cadeaux), ''),
+    kpi('Stock d\'œufs (fin)', n(k.stockFin), 'hors races à part : ' + n(k.stockHorsAPart)),
+    kpi('Jours de stock', k.joursDeStock.toLocaleString('fr-FR', { maximumFractionDigits: 1 }), 'au rythme de sortie de la période', k.joursDeStock > 7 ? 'moy' : 'ok'),
+    kpi('Clients actifs', n(r.nbClients), 'sur la période')
+  ].join('');
+  var O = r.bilanOeufs, dispo = O.initial + O.collectes;
+  $('tBilanOeufs').innerHTML = table(['', 'Œufs', '% disponible'], [
+    ['Stock initial', n(O.initial), p(div(O.initial, dispo))], ['+ Collectés', n(O.collectes), p(div(O.collectes, dispo))],
+    ['− Cassés', n(O.casses), p(div(O.casses, dispo))], ['− Mis en couveuse', n(O.couveuse), p(div(O.couveuse, dispo))],
+    ['− Vendus', n(O.vendus), p(div(O.vendus, dispo))], ['− Offerts (offre + cadeaux)', n(O.offerts), p(div(O.offerts, dispo))]],
+    ['Stock final', n(O.final), p(div(O.final, dispo))]);
+  graph('gStock', { type: 'line', data: { labels: Q.jours.map(dc), datasets: [{ label: 'Stock d\'œufs', data: Q.stock, borderColor: COUL[1], backgroundColor: 'rgba(37,99,235,.1)', fill: true, pointRadius: 0, tension: .2 }] },
+    options: { scales: { y: axeN, x: { ticks: { maxTicksLimit: 12 } } }, plugins: { legend: { display: false } } } });
+  graph('gVentesMois', { data: { labels: M.map(function (m) { return moisLib(m.mois); }), datasets: [
+    { type: 'bar', label: 'Œufs vendus', data: M.map(function (m) { return m.vendus; }), backgroundColor: COUL[1], yAxisID: 'y' },
+    { type: 'line', label: 'CA (Ar)', data: M.map(function (m) { return m.ca; }), borderColor: COUL[0], yAxisID: 'y2', tension: .3 }] },
+    options: { scales: { y: axeN, y2: { position: 'right', beginAtZero: true, grid: { display: false }, ticks: { callback: function (v) { return (v / 1e6).toLocaleString('fr-FR') + ' M'; } } } } } });
+  $('tClients').innerHTML = r.topClients.length ? table(['Client', 'Achats', 'Œufs', 'Montant', 'Offerts', 'Dernier achat'],
+    r.topClients.map(function (c) { return [esc(c.client), n(c.achats), n(c.oeufs), ar(c.montant), n(c.offerts), d(c.dernier)]; })) : '<p class="vide">Aucune vente sur la période.</p>';
+  $('aideOffre').textContent = 'Offre : ' + r.parametres.offreOeufs + ' œuf offert par tranche de ' + r.parametres.offrePalier + ' achetés' + (r.parametres.offreDebut ? ', depuis le ' + d(r.parametres.offreDebut) : '') + '. Prix par défaut : ' + n(r.parametres.prixOeuf) + ' Ar.';
+  $('tVentes').innerHTML = table(['Date', 'Client', 'Œufs', 'Prix', 'Montant', 'Offerts', 'Cadeaux'],
+    r.dernieresVentes.map(function (v) { return [d(v.date), esc(v.client), n(v.achetes), n(v.prix), ar(v.montant), n(v.offerts), n(v.cadeaux)]; }));
+
+  // Rentabilité
+  var R = r.rentabilite;
+  $('kpisRent').innerHTML = [
+    kpi('Chiffre d\'affaires', ar(R.ca), 'ventes d\'œufs facturées', 'neutre'),
+    kpi('Provende', ar(R.provende), p(div(R.provende, R.ca), 0) + ' du CA'),
+    kpi('Autres charges var.', ar(R.autresVariables), p(div(R.autresVariables, R.ca), 0) + ' du CA'),
+    kpi('Marge brute', ar(R.margeBrute), p(div(R.margeBrute, R.ca), 1) + ' du CA', R.margeBrute >= 0 ? 'ok' : 'ko'),
+    kpi('Charges fixes', ar(R.fixes), p(div(R.fixes, R.ca), 0) + ' du CA'),
+    kpi('Marge nette', ar(R.margeNette), p(div(R.margeNette, R.ca), 1) + ' du CA', R.margeNette >= 0 ? 'ok' : 'ko')
+  ].join('');
+  $('tResultat').innerHTML = table(['Libellé', 'Montant (Ar)', '% du CA'], [
+    ['Chiffre d\'affaires (ventes d\'œufs)', n(R.ca), p(1, 0)], ['− Provende (calculée)', n(R.provende), p(div(R.provende, R.ca))],
+    ['− Autres charges variables', n(R.autresVariables), p(div(R.autresVariables, R.ca))], ['<b>Marge brute</b>', '<b>' + n(R.margeBrute) + '</b>', p(div(R.margeBrute, R.ca))],
+    ['− Charges fixes', n(R.fixes), p(div(R.fixes, R.ca))]], ['Marge nette', '<span class="c-' + (R.margeNette >= 0 ? 'ok' : 'ko') + '">' + n(R.margeNette) + '</span>', p(div(R.margeNette, R.ca))]);
+  $('tParOeuf').innerHTML = table(['Indicateur', 'Valeur'], [
+    ['Œufs collectés (tous lots)', n(R.collectes)], ['Œufs vendus', n(R.vendus)], ['Prix de vente moyen (Ar/œuf vendu)', n(R.prixMoyen)],
+    ['Coût provende par œuf collecté (Ar)', n(R.coutProvendeOeuf)], ['Coût de revient complet par œuf collecté (Ar)', '<span class="c-' + (R.coutRevientOeuf <= R.prixMoyen ? 'ok' : 'ko') + '">' + n(R.coutRevientOeuf) + '</span>'],
+    ['Marge nette par œuf vendu (Ar)', n(R.margeNetteOeuf)], ['Seuil de rentabilité (œufs vendus)', R.seuilRentabilite ? n(R.seuilRentabilite) : '– (pas de charges fixes ou marge négative)'],
+    ['Provende consommée (kg)', n(R.provendeKg)], ['Prix moyen de la provende (Ar/kg)', n(R.prixMoyenProvende)]]);
+  graph('gRentMois', { data: { labels: M.map(function (m) { return moisLib(m.mois); }), datasets: [
+    { type: 'bar', label: 'CA', data: M.map(function (m) { return m.ca; }), backgroundColor: COUL[0], stack: 'ca' },
+    { type: 'bar', label: 'Provende', data: M.map(function (m) { return m.provende; }), backgroundColor: '#e0a84a', stack: 'cout' },
+    { type: 'bar', label: 'Autres charges', data: M.map(function (m) { return m.autresVariables + m.fixes; }), backgroundColor: '#c97b6f', stack: 'cout' },
+    { type: 'line', label: 'Marge nette', data: M.map(function (m) { return m.margeNette; }), borderColor: COUL[1], tension: .3 }] },
+    options: { scales: { x: { stacked: true }, y: { stacked: false, grid: { color: '#eef1ef' }, ticks: { callback: function (v) { return (v / 1e6).toLocaleString('fr-FR') + ' M'; } } } },
+      plugins: { tooltip: { callbacks: { label: function (c) { return c.dataset.label + ' : ' + ar(c.raw); } } } } } });
+  $('tRentMois').innerHTML = table(['Mois', 'CA', 'Provende', 'Autres var.', 'Marge brute', 'Fixes', 'Marge nette', 'Collectés', 'Vendus'],
+    M.map(function (m) { return [moisLib(m.mois), n(m.ca), n(m.provende), n(m.autresVariables), n(m.margeBrute), n(m.fixes), '<span class="c-' + (m.margeNette >= 0 ? 'ok' : 'ko') + '">' + n(m.margeNette) + '</span>', n(m.collectes), n(m.vendus)]; }),
+    ['TOTAL'].concat(['ca', 'provende', 'autresVariables', 'margeBrute', 'fixes', 'margeNette', 'collectes', 'vendus'].map(function (c) { return n(M.reduce(function (t, m) { return t + m[c]; }, 0)); })));
+  $('tProvende').innerHTML = table(['Lot', 'Race', 'Poules-jours', 'Pondeuses-jours', 'Provende (kg)', 'Provende (Ar)', 'Œufs', 'Ar / œuf', 'Part', 'Autres var. affectées'],
+    R.parLot.map(function (l) { return [esc(l.lot), esc(l.race), n(l.poulesJours), n(l.pondeusesJours), n(l.kg), n(l.ar), n(l.collectes), l.collectes ? n(l.parOeuf) : '–', p(l.part), n(l.autresVar)]; }),
+    ['TOTAL', '', n(sum(R.parLot, 'poulesJours')), n(sum(R.parLot, 'pondeusesJours')), n(sum(R.parLot, 'kg')), n(sum(R.parLot, 'ar')), n(sum(R.parLot, 'collectes')), n(R.coutProvendeOeuf), p(1, 0), n(sum(R.parLot, 'autresVar'))])
+    + '<p class="aide" style="margin-top:8px">Autres charges variables non affectées à un lot : <b>' + ar(R.nonAffectees) + '</b></p>';
+  $('tCharges').innerHTML = R.charges.length ? table(['Date', 'Type', 'Catégorie', 'Libellé', 'Lot', 'Montant'],
+    R.charges.map(function (c) { return [d(c.date), c.type, esc(c.categorie), esc(c.libelle), esc(c.lot), n(c.montant)]; }), ['TOTAL', '', '', '', '', n(sum(R.charges, 'montant'))]) : '<p class="vide">Aucune charge saisie sur la période.</p>';
+
+  // Objectifs
+  $('aideObj').textContent = 'Élevage : situation au ' + d(f.fin) + '. Production et vente : mois en cours (' + p(r.prorataMois, 0) + ' du mois écoulé ; les cibles de volume sont au prorata). Ces objectifs portent sur tous les lots.';
+  var g = '';
+  $('listeObj').innerHTML = r.objectifs.map(function (o) {
+    var h = '';
+    if (o.groupe !== g) { g = o.groupe; h += '<div class="groupe">' + esc(g) + '</div>'; }
+    var f2 = o.format === 'pct' ? function (x) { return p(x); } : (o.format === 'ar' ? ar : n);
+    var cl = o.statut === 'atteint' ? 'ok' : (o.statut === 'proche' ? 'moy' : 'ko');
+    var coul = { ok: 'var(--vert)', moy: 'var(--orange)', ko: 'var(--rouge)' }[cl];
+    return h + '<div class="objectif"><div class="lib">' + esc(o.libelle) + '<div class="u">' + esc(o.unite) + '</div></div>' +
+      '<div><div class="u" style="font-size:11px;color:var(--doux)">Cible ' + o.sens + (o.cible !== o.cibleADate ? ' (à date)' : '') + '</div><b>' + f2(o.cibleADate) + '</b></div>' +
+      '<div><div style="font-size:11px;color:var(--doux)">Réalisé</div><b class="c-' + cl + '">' + f2(o.realise) + '</b></div>' +
+      '<div class="barre" title="' + p(o.atteinte, 0) + '"><span style="width:' + Math.min(100, Math.max(0, o.atteinte * 100)) + '%;background:' + coul + '"></span></div>' +
+      '<span class="pill ' + cl + '">' + (o.statut === 'atteint' ? '✔ Atteint' : (o.statut === 'proche' ? '▲ Proche' : '✖ À améliorer')) + ' · ' + p(o.atteinte, 0) + '</span></div>';
+  }).join('');
+  var oEff = r.objectifs[0], oPon = r.objectifs[1], oV = r.objectifs.filter(function (o) { return o.libelle === 'Œufs vendus'; })[0];
+  graph('gObjEff', { data: { labels: M.map(function (m) { return moisLib(m.mois); }), datasets: [
+    { type: 'bar', label: 'Poules', data: M.map(function (m) { return m.poules; }), backgroundColor: 'rgba(31,122,77,.75)' },
+    { type: 'bar', label: 'En ponte', data: M.map(function (m) { return m.enPonte; }), backgroundColor: 'rgba(37,99,235,.7)' },
+    { type: 'line', label: 'Cible effectif (' + n(oEff.cible) + ')', data: M.map(function () { return oEff.cible; }), borderColor: COUL[0], borderDash: [6, 4], pointRadius: 0 },
+    { type: 'line', label: 'Cible en ponte (' + n(oPon.cible) + ')', data: M.map(function () { return oPon.cible; }), borderColor: COUL[1], borderDash: [6, 4], pointRadius: 0 }] }, options: { scales: { y: axeN } } });
+  graph('gObjVentes', { data: { labels: M.map(function (m) { return moisLib(m.mois); }), datasets: [
+    { type: 'bar', label: 'Œufs vendus', data: M.map(function (m) { return m.vendus; }), backgroundColor: M.map(function (m) { return m.vendus >= oV.cible ? COUL[0] : 'rgba(37,99,235,.7)'; }) },
+    { type: 'line', label: 'Cible mensuelle (' + n(oV.cible) + ')', data: M.map(function () { return oV.cible; }), borderColor: COUL[2], borderDash: [6, 4], pointRadius: 0 }] }, options: { scales: { y: axeN } } });
+}
+function div(a, b) { return b ? a / b : 0; }
+function sum(a, c) { return a.reduce(function (t, x) { return t + (x[c] || 0); }, 0); }
+
+var listesRemplies = false;
+function remplirListes(r) {
+  var sel = $('fSel'), cur = r.filtres.selection;
+  sel.innerHTML = r.listes.selection.map(function (s) { return '<option' + (s === cur ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('');
+  if (listesRemplies) return;
+  listesRemplies = true;
+  $('cCat').innerHTML = r.listes.categories.map(function (c) { return '<option>' + esc(c) + '</option>'; }).join('');
+  $('cLot').innerHTML = '<option>Tous</option>' + r.listes.lots.map(function (c) { return '<option>' + esc(c) + '</option>'; }).join('');
+  $('dlClients').innerHTML = r.topClients.map(function (c) { return '<option value="' + esc(c.client) + '">'; }).join('');
+  ['sDate', 'vDate', 'cDate'].forEach(function (id) { $(id).value = r.filtres.auto; });
+  $('vPrix').placeholder = r.parametres.prixOeuf;
+}
+
+/* ---------- Chargement ---------- */
+function options() {
+  return { selection: $('fSel').value || 'Tous', periode: $('fPer').value, jour: $('fJour').value, debut: $('fDeb').value, fin: $('fFin').value };
+}
+function charger() {
+  $('chargement').hidden = false; $('bMaj').disabled = true;
+  appel('apiTableauDeBord', options()).then(function (r) { rendre(r); })
+    .catch(function (e) { $('lecture').innerHTML = '<span class="c-ko">Erreur : ' + esc(e.message || e) + '</span>'; })
+    .then(function () { $('chargement').hidden = true; $('bMaj').disabled = false; });
+}
+$('bMaj').onclick = charger;
+['fSel', 'fPer', 'fJour', 'fDeb', 'fFin'].forEach(function (id) { $(id).addEventListener('change', function () { if (id === 'fPer') { var perso = $('fPer').value === 'perso'; $('lDeb').hidden = $('lFin').hidden = !perso; } charger(); }); });
+document.querySelectorAll('#onglets button').forEach(function (b) {
+  b.onclick = function () {
+    document.querySelectorAll('#onglets button').forEach(function (x) { x.classList.toggle('actif', x === b); });
+    document.querySelectorAll('.page').forEach(function (pg) { pg.classList.toggle('actif', pg.id === 'page-' + b.dataset.p); });
+    $('barreFiltres').style.display = b.dataset.p === 'saisie' ? 'none' : '';
+    if (b.dataset.p === 'saisie' && !$('tSaisie').innerHTML) chargerSaisie();
+    Object.keys(graphs).forEach(function (k) { graphs[k].resize(); });
+  };
+});
+
+/* ---------- Saisie ---------- */
+var CH = [['coll', 'Œufs collectés'], ['casse', 'Cassés'], ['couv', 'Couveuse'], ['pDec', 'Décès poules'], ['pEnt', 'Entrées poules'], ['pVen', 'Poules vendues'], ['pManq', 'Manquantes'], ['cEnt', 'Entrées coqs'], ['cDec', 'Décès coqs'], ['cVen', 'Coqs vendus'], ['obs', 'Observation']];
+function chargerSaisie() {
+  if (!$('sDate').value) return;
+  $('mJournal').textContent = 'Chargement…';
+  appel('apiJournalDuJour', $('sDate').value).then(function (r) {
+    $('tSaisie').innerHTML = '<thead><tr><th>Lot</th>' + CH.map(function (c) { return '<th>' + c[1] + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      r.lots.map(function (l) { return '<tr data-lot="' + esc(l.lot) + '"><td><b>' + esc(l.lot) + '</b></td>' + CH.map(function (c) { return '<td><input data-c="' + c[0] + '" ' + (c[0] === 'obs' ? 'style="width:160px;text-align:left"' : 'type="number" min="0"') + ' value="' + esc(l[c[0]]) + '"></td>'; }).join('') + '</tr>'; }).join('') + '</tbody>';
+    $('mJournal').textContent = r.lots.length ? '' : 'Aucun lot présent à cette date.';
+  }).catch(function (e) { $('mJournal').innerHTML = '<span class="c-ko">' + esc(e.message || e) + '</span>'; });
+}
+$('bCharger').onclick = chargerSaisie;
+$('sDate').addEventListener('change', chargerSaisie);
+function envoyer(bouton, msg, nom, data) {
+  bouton.disabled = true; $(msg).textContent = 'Enregistrement…';
+  return appel(nom, data).then(function (r) { $(msg).innerHTML = '<span class="c-ok">' + esc(r.message) + '</span>'; charger(); return r; })
+    .catch(function (e) { $(msg).innerHTML = '<span class="c-ko">' + esc(e.message || e) + '</span>'; })
+    .then(function (r) { bouton.disabled = false; return r; });
+}
+$('bJournal').onclick = function () {
+  var lignes = [].map.call(document.querySelectorAll('#tSaisie tbody tr'), function (tr) {
+    var o = { lot: tr.dataset.lot }; tr.querySelectorAll('input').forEach(function (i) { o[i.dataset.c] = i.value; }); return o;
+  });
+  envoyer(this, 'mJournal', 'apiEnregistrerJournal', { date: $('sDate').value, lignes: lignes });
+};
+function calcVente() {
+  if (!D) return;
+  var q = +$('vQte').value || 0, pr = $('vPrix').value === '' ? D.parametres.prixOeuf : +$('vPrix').value;
+  var off = D.parametres.offreDebut && $('vDate').value >= D.parametres.offreDebut ? Math.floor(q / D.parametres.offrePalier) * D.parametres.offreOeufs : 0;
+  $('vCalc').textContent = q ? 'Montant : ' + n(q * pr) + ' Ar · œufs offerts (offre) : ' + off + ' · total livré : ' + (q + off + (+$('vCad').value || 0)) : '';
+}
+['vQte', 'vPrix', 'vCad', 'vDate'].forEach(function (id) { $(id).addEventListener('input', calcVente); });
+$('bVente').onclick = function () {
+  envoyer(this, 'mVente', 'apiEnregistrerVente', { date: $('vDate').value, client: $('vClient').value, achetes: $('vQte').value, prix: $('vPrix').value, cadeaux: $('vCad').value, obs: $('vObs').value })
+    .then(function (r) { if (r && r.ok) { ['vClient', 'vQte', 'vPrix', 'vCad', 'vObs'].forEach(function (id) { $(id).value = ''; }); $('vCalc').textContent = ''; } });
+};
+$('bCharge').onclick = function () {
+  envoyer(this, 'mCharge', 'apiEnregistrerCharge', { date: $('cDate').value, type: $('cType').value, categorie: $('cCat').value, lot: $('cLot').value, libelle: $('cLib').value, montant: $('cMont').value })
+    .then(function (r) { if (r && r.ok) { $('cLib').value = ''; $('cMont').value = ''; } });
+};
+
+charger();
+</script>
+</body>
+</html>
