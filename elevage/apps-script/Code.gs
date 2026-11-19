@@ -3,11 +3,14 @@
  * Fichier unique à coller dans Apps Script (Code.gs), lié à la base Google Sheets.
  *
  * Organisation :
- *   1. Configuration (onglets, en-têtes)
+ *   1. Configuration (onglets, en-têtes, rôles)
  *   2. Web app, menu, installation
- *   3. API appelée par la page (lecture du tableau de bord, saisie)
- *   4. Lecture de la base
- *   5. Moteur de calcul (fonctions pures, testées hors Google avec Node)
+ *   3. Sécurité : connexion par code e-mail, sessions, rôles, journal des actions
+ *   4. API appelée par la page (tableau de bord, saisie, utilisateurs, paramètres)
+ *   5. Lecture de la base
+ *   6. Moteur de calcul (fonctions pures, testées hors Google avec Node)
+ *
+ * Rôles : Superadmin (tout) · Admin (consultation + saisie) · Utilisateur (consultation).
  */
 
 /* ===================== 1. CONFIGURATION ===================== */
@@ -19,9 +22,12 @@ const ONGLETS = {
   LOTS: 'Lots',
   JOURNAL: 'Journal',
   VENTES: 'Ventes',
-  CHARGES: 'Charges'
+  CHARGES: 'Charges',
+  UTILISATEURS: 'Utilisateurs',
+  ACTIONS: 'JournalActions'
 };
 
+/** Onglets de données lus par le moteur de calcul. */
 const ENTETES = {
   Parametres: ['Clé', 'Libellé', 'Valeur', 'Unité / commentaire'],
   Races: ['Race', 'Objectif taux de ponte', 'Ration poule en ponte (kg/j)', 'Ration poulette (kg/j)', 'Stock d\'œufs à part (Oui/Non)'],
@@ -32,6 +38,14 @@ const ENTETES = {
   Ventes: ['Date', 'Client', 'Œufs achetés', 'Prix unitaire (Ar)', 'Cadeaux hors offre', 'Observation'],
   Charges: ['Date', 'Type', 'Catégorie', 'Libellé', 'Lot', 'Montant (Ar)']
 };
+
+/** Onglets de sécurité (non lus par le moteur de calcul). */
+const ENTETES_SECURITE = {
+  Utilisateurs: ['Email', 'Nom', 'Rôle', 'Actif', 'Créé le', 'Dernière connexion'],
+  JournalActions: ['Date', 'Utilisateur', 'Action', 'Détail']
+};
+
+const ROLES = ['Superadmin', 'Admin', 'Utilisateur'];
 
 /** Champs du journal (clé interne -> index de colonne dans ENTETES.Journal). */
 const CHAMPS_JOURNAL = ['date', 'lot', 'pEnt', 'pDec', 'pVen', 'pManq', 'cEnt', 'cDec', 'cVen', 'coll', 'casse', 'couv', 'obs'];
@@ -52,16 +66,17 @@ const PARAMETRES_DEFAUT = [
   ['CIBLE_VENTES_MOIS', 'Objectif œufs vendus par mois', 8000, 'œufs / mois'],
   ['ECOULEMENT_MIN', 'Objectif taux d\'écoulement', 0.9, 'ratio'],
   ['NOM_ELEVAGE', 'Nom affiché', 'MATURA AGRI', ''],
-  ['UTILISATEURS', 'Adresses autorisées à saisir', '', 'e-mails séparés par des virgules ; vide = pas de contrôle']
+  ['SESSION_DUREE_JOURS', 'Durée d\'une session de connexion', 7, 'jours'],
+  ['EXPEDITEUR_NOM', 'Nom de l\'expéditeur des e-mails', 'Matura Agri', 'codes de connexion et invitations']
 ];
 
 /* ===================== 2. WEB APP, MENU, INSTALLATION ===================== */
 
 function doGet() {
   return HtmlService.createTemplateFromFile('Index').evaluate()
-    .setTitle('Tableau de bord – Élevage')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    .setTitle('Matura Agri – Tableau de bord')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
 }
 
 function onOpen() {
@@ -76,30 +91,49 @@ function onOpen() {
 function ouvrirTableauDeBord() {
   const url = ScriptApp.getService().getUrl();
   const html = url
-    ? '<p style="font-family:sans-serif">Tableau de bord : <a href="' + url + '" target="_blank">ouvrir dans un nouvel onglet</a></p>'
-    : '<p style="font-family:sans-serif">La web app n\'est pas encore déployée : Apps Script &gt; Déployer &gt; Nouveau déploiement &gt; Application Web.</p>';
+    ? '<p style="font-family:-apple-system,sans-serif">Tableau de bord : <a href="' + url + '" target="_blank">ouvrir dans un nouvel onglet</a></p>'
+    : '<p style="font-family:-apple-system,sans-serif">La web app n\'est pas encore déployée : Apps Script &gt; Déployer &gt; Nouveau déploiement &gt; Application Web.</p>';
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(420).setHeight(110), 'Tableau de bord');
 }
 
-/** Crée les onglets et en-têtes manquants (ne supprime aucune donnée). */
+/**
+ * Crée les onglets et en-têtes manquants (ne supprime aucune donnée).
+ * Au premier lancement, le propriétaire du script devient Superadmin.
+ */
 function initialiserBase() {
   const ss = SpreadsheetApp.getActive();
-  Object.keys(ENTETES).forEach(function (nom) {
+  const tous = Object.assign({}, ENTETES, ENTETES_SECURITE);
+  Object.keys(tous).forEach(function (nom) {
     let sh = ss.getSheetByName(nom);
     if (!sh) sh = ss.insertSheet(nom);
-    const ent = ENTETES[nom];
+    const ent = tous[nom];
     const actuel = sh.getRange(1, 1, 1, ent.length).getValues()[0];
     if (actuel.join('') === '') {
-      sh.getRange(1, 1, 1, ent.length).setValues([ent]).setFontWeight('bold').setBackground('#1f4e3d').setFontColor('#ffffff');
+      sh.getRange(1, 1, 1, ent.length).setValues([ent]).setFontWeight('bold').setBackground('#1f3d33').setFontColor('#ffffff');
       sh.setFrozenRows(1);
     }
   });
   const shP = ss.getSheetByName(ONGLETS.PARAMETRES);
   const cles = shP.getLastRow() > 1 ? shP.getRange(2, 1, shP.getLastRow() - 1, 1).getValues().map(function (r) { return r[0]; }) : [];
-  PARAMETRES_DEFAUT.forEach(function (p) {
-    if (cles.indexOf(p[0]) < 0) shP.appendRow(p);
+  PARAMETRES_DEFAUT.forEach(function (p) { if (cles.indexOf(p[0]) < 0) shP.appendRow(p); });
+
+  const proprio = normEmail_(Session.getEffectiveUser().getEmail());
+  const users = lireUtilisateurs_();
+  if (proprio && !users.some(function (u) { return u.role === 'Superadmin' && u.actif; })) {
+    const existant = users.filter(function (u) { return u.email === proprio; })[0];
+    const sh = ss.getSheetByName(ONGLETS.UTILISATEURS);
+    if (existant) sh.getRange(existant.ligne, 3, 1, 2).setValues([['Superadmin', 'Oui']]);
+    else sh.appendRow([proprio, 'Propriétaire', 'Superadmin', 'Oui', new Date(), '']);
+  }
+  // Les onglets de sécurité ne doivent pas être modifiés à la main par erreur.
+  [ONGLETS.UTILISATEURS, ONGLETS.ACTIONS].forEach(function (nom) {
+    const sh = ss.getSheetByName(nom);
+    if (!sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).length) {
+      sh.protect().setDescription('Géré par le tableau de bord').setWarningOnly(true);
+    }
   });
-  SpreadsheetApp.getActive().toast('Structure vérifiée.', 'Élevage', 4);
+  journal_('Installation', 'Structure vérifiée' + (proprio ? ' par ' + proprio : ''));
+  ss.toast('Structure vérifiée. Superadmin : ' + (proprio || '(inconnu)'), 'Élevage', 6);
 }
 
 /** Contrôle de cohérence des saisies (affiché dans une boîte de dialogue). */
@@ -109,14 +143,196 @@ function verifierDonnees() {
   SpreadsheetApp.getUi().alert('Vérification des données', msg, SpreadsheetApp.getUi().ButtonSet.OK);
 }
 
-/* ===================== 3. API (appelée par Index.html) ===================== */
+/* ===================== 3. SÉCURITÉ ===================== */
 
-function apiTableauDeBord(options) {
-  return calculerTableau(lireBase_(), options || {});
+const OTP_TTL_S = 600, OTP_ESSAIS = 5, OTP_DELAI_S = 45, BLOCAGE_ECHECS = 10, BLOCAGE_S = 900;
+const REGEX_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+let UTILISATEUR_COURANT_ = '';
+
+function normEmail_(e) { return String(e || '').trim().toLowerCase(); }
+
+function hash_(texte) {
+  const props = PropertiesService.getScriptProperties();
+  let sel = props.getProperty('AUTH_SEL');
+  if (!sel) { sel = Utilities.getUuid() + Utilities.getUuid(); props.setProperty('AUTH_SEL', sel); }
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, sel + '|' + texte)
+    .map(function (b) { return ((b + 256) % 256).toString(16).padStart(2, '0'); }).join('');
+}
+
+function echapper_(s) {
+  return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c];
+  });
+}
+
+function param_(cle, defaut) {
+  const sh = SpreadsheetApp.getActive().getSheetByName(ONGLETS.PARAMETRES);
+  if (!sh) return defaut;
+  const l = sh.getDataRange().getValues().filter(function (r) { return r[0] === cle; })[0];
+  return l && l[2] !== '' ? l[2] : defaut;
+}
+
+function lireUtilisateurs_() {
+  const sh = SpreadsheetApp.getActive().getSheetByName(ONGLETS.UTILISATEURS);
+  if (!sh || sh.getLastRow() < 2) return [];
+  const tz = Session.getScriptTimeZone();
+  return sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues().map(function (r, i) {
+    return {
+      ligne: i + 2, email: normEmail_(r[0]), nom: String(r[1] || ''), role: ROLES.indexOf(r[2]) >= 0 ? r[2] : 'Utilisateur',
+      actif: r[3] === true || /^(oui|true|vrai)$/i.test(String(r[3])),
+      creeLe: r[4] instanceof Date ? Utilities.formatDate(r[4], tz, 'yyyy-MM-dd HH:mm') : '',
+      derniere: r[5] instanceof Date ? Utilities.formatDate(r[5], tz, 'yyyy-MM-dd HH:mm') : ''
+    };
+  }).filter(function (u) { return u.email; });
+}
+
+function profil_(u) {
+  return { email: u.email, nom: u.nom || u.email, role: u.role,
+    peutSaisir: u.role === 'Admin' || u.role === 'Superadmin', superadmin: u.role === 'Superadmin' };
+}
+
+/** Écrit une ligne dans l'onglet JournalActions (qui, quand, quoi). */
+function journal_(action, detail) {
+  try {
+    const ss = SpreadsheetApp.getActive();
+    let sh = ss.getSheetByName(ONGLETS.ACTIONS);
+    if (!sh) {
+      sh = ss.insertSheet(ONGLETS.ACTIONS);
+      sh.appendRow(ENTETES_SECURITE.JournalActions);
+    }
+    sh.appendRow([new Date(), UTILISATEUR_COURANT_ || 'système', action, String(detail || '').slice(0, 500)]);
+  } catch (e) { /* le journal ne doit jamais bloquer une action */ }
+}
+
+/** Étape 1 : envoi d'un code à 6 chiffres. Réponse identique que l'adresse soit connue ou non. */
+function apiDemanderCode(email) {
+  email = normEmail_(email);
+  const neutre = { message: 'Si cette adresse est autorisée, un code vient de lui être envoyé.' };
+  if (!REGEX_EMAIL.test(email)) throw new Error('Adresse e-mail invalide.');
+  const cache = CacheService.getScriptCache();
+  if (cache.get('bloque:' + hash_(email))) throw new Error('Trop de tentatives. Réessayez dans 15 minutes.');
+  const cleRate = 'otp-rate:' + hash_(email);
+  if (cache.get(cleRate)) throw new Error('Un code vient d\'être envoyé. Patientez quelques secondes avant de redemander.');
+  cache.put(cleRate, '1', OTP_DELAI_S);
+  const u = lireUtilisateurs_().filter(function (x) { return x.email === email; })[0];
+  if (!u || !u.actif) { UTILISATEUR_COURANT_ = email; journal_('Connexion refusée', 'Adresse non autorisée ou inactive'); return neutre; }
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  cache.put('otp:' + hash_(email), JSON.stringify({ h: hash_(email + ':' + code), n: 0 }), OTP_TTL_S);
+  const nom = param_('EXPEDITEUR_NOM', 'Matura Agri');
+  MailApp.sendEmail({
+    to: email, name: nom, subject: code + ' est votre code de connexion ' + nom,
+    htmlBody: gabaritMail_('Votre code de connexion', 'Bonjour ' + echapper_(u.nom || '') + ',',
+      '<p style="font-size:40px;letter-spacing:10px;font-weight:600;margin:24px 0;color:#1d1d1f">' + code + '</p>' +
+      '<p style="color:#6e6e73;font-size:13px;line-height:1.5">Ce code est valable 10 minutes. Si vous n\'êtes pas à l\'origine de cette demande, ignorez ce message : personne ne peut se connecter sans ce code.</p>')
+  });
+  return neutre;
+}
+
+/** Étape 2 : vérification du code → jeton de session. */
+function apiVerifierCode(email, code) {
+  email = normEmail_(email);
+  UTILISATEUR_COURANT_ = email;
+  const cache = CacheService.getScriptCache();
+  const cle = 'otp:' + hash_(email);
+  const brut = cache.get(cle);
+  if (!brut) throw new Error('Code expiré ou inexistant. Demandez un nouveau code.');
+  const o = JSON.parse(brut);
+  if (o.h !== hash_(email + ':' + String(code || '').replace(/\D/g, ''))) {
+    o.n++;
+    const echecs = Number(cache.get('echecs:' + hash_(email)) || 0) + 1;
+    cache.put('echecs:' + hash_(email), String(echecs), BLOCAGE_S);
+    if (o.n >= OTP_ESSAIS || echecs >= BLOCAGE_ECHECS) {
+      cache.remove(cle);
+      if (echecs >= BLOCAGE_ECHECS) cache.put('bloque:' + hash_(email), '1', BLOCAGE_S);
+      journal_('Connexion bloquée', 'Trop de codes erronés');
+      throw new Error('Trop de tentatives. Demandez un nouveau code.');
+    }
+    cache.put(cle, JSON.stringify(o), OTP_TTL_S);
+    throw new Error('Code incorrect (' + (OTP_ESSAIS - o.n) + ' essai(s) restant(s)).');
+  }
+  cache.remove(cle);
+  cache.remove('echecs:' + hash_(email));
+  const u = lireUtilisateurs_().filter(function (x) { return x.email === email; })[0];
+  if (!u || !u.actif) throw new Error('Accès non autorisé.');
+  nettoyerSessions_();
+  const jeton = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+  const duree = Number(param_('SESSION_DUREE_JOURS', 7)) || 7;
+  PropertiesService.getScriptProperties().setProperty('sess_' + hash_(jeton), JSON.stringify({ e: email, x: Date.now() + duree * 86400000 }));
+  SpreadsheetApp.getActive().getSheetByName(ONGLETS.UTILISATEURS).getRange(u.ligne, 6).setValue(new Date());
+  journal_('Connexion', 'Rôle : ' + u.role);
+  return { jeton: jeton, moi: profil_(u) };
+}
+
+function apiDeconnexion(jeton) {
+  if (jeton) {
+    const s = PropertiesService.getScriptProperties().getProperty('sess_' + hash_(jeton));
+    if (s) { UTILISATEUR_COURANT_ = JSON.parse(s).e; journal_('Déconnexion', ''); }
+    PropertiesService.getScriptProperties().deleteProperty('sess_' + hash_(jeton));
+  }
+  return { message: 'Déconnecté.' };
+}
+
+function nettoyerSessions_() {
+  const props = PropertiesService.getScriptProperties();
+  const tout = props.getProperties();
+  Object.keys(tout).forEach(function (k) {
+    if (k.indexOf('sess_') !== 0) return;
+    try { if (JSON.parse(tout[k]).x < Date.now()) props.deleteProperty(k); } catch (e) { props.deleteProperty(k); }
+  });
+}
+
+/** Ferme toutes les sessions d'une adresse (désactivation, changement de rôle). */
+function fermerSessions_(email) {
+  const props = PropertiesService.getScriptProperties();
+  const tout = props.getProperties();
+  Object.keys(tout).forEach(function (k) {
+    if (k.indexOf('sess_') !== 0) return;
+    try { if (JSON.parse(tout[k]).e === email) props.deleteProperty(k); } catch (e) { /* ignoré */ }
+  });
+}
+
+/**
+ * Contrôle d'accès de CHAQUE appel. niveau : 'lecture' | 'saisie' | 'superadmin'.
+ * Le compte est relu à chaque appel : une désactivation ou un changement de rôle est immédiat.
+ */
+function auth_(jeton, niveau) {
+  if (!jeton) throw new Error('SESSION_EXPIREE');
+  const brut = PropertiesService.getScriptProperties().getProperty('sess_' + hash_(jeton));
+  if (!brut) throw new Error('SESSION_EXPIREE');
+  const s = JSON.parse(brut);
+  if (s.x < Date.now()) { PropertiesService.getScriptProperties().deleteProperty('sess_' + hash_(jeton)); throw new Error('SESSION_EXPIREE'); }
+  const u = lireUtilisateurs_().filter(function (x) { return x.email === s.e; })[0];
+  if (!u || !u.actif) throw new Error('SESSION_EXPIREE');
+  const p = profil_(u);
+  UTILISATEUR_COURANT_ = p.email;
+  if (niveau === 'saisie' && !p.peutSaisir) { journal_('Accès refusé', 'Saisie demandée par un utilisateur en lecture seule'); throw new Error('Action réservée aux administrateurs.'); }
+  if (niveau === 'superadmin' && !p.superadmin) { journal_('Accès refusé', 'Action superadmin demandée'); throw new Error('Action réservée au superadmin.'); }
+  return p;
+}
+
+function gabaritMail_(titre, intro, corps) {
+  const nom = echapper_(param_('EXPEDITEUR_NOM', 'Matura Agri'));
+  return '<div style="background:#f5f5f7;padding:32px 12px;font-family:-apple-system,BlinkMacSystemFont,\'SF Pro Text\',\'Segoe UI\',Roboto,Arial,sans-serif">' +
+    '<div style="max-width:440px;margin:auto;background:#fff;border-radius:18px;padding:32px;color:#1d1d1f">' +
+    '<p style="font-size:12px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#1f6f50;margin:0 0 8px">' + nom + '</p>' +
+    '<h1 style="font-size:22px;margin:0 0 16px;font-weight:600">' + titre + '</h1>' +
+    '<p style="font-size:15px;margin:0">' + intro + '</p>' + corps + '</div></div>';
+}
+
+/* ===================== 4. API (appelée par Index.html) ===================== */
+
+function apiMoi(jeton) { return auth_(jeton, 'lecture'); }
+
+function apiTableauDeBord(jeton, options) {
+  const moi = auth_(jeton, 'lecture');
+  const r = calculerTableau(lireBase_(), options || {});
+  r.moi = moi;
+  return r;
 }
 
 /** Valeurs déjà saisies pour une date (une entrée par lot présent à cette date). */
-function apiJournalDuJour(date) {
+function apiJournalDuJour(jeton, date) {
+  auth_(jeton, 'saisie');
   const m = construireModele(lireBase_());
   const j = versJour(date);
   return {
@@ -131,9 +347,24 @@ function apiJournalDuJour(date) {
   };
 }
 
+function nombreSaisi_(v, libelle) {
+  if (v === '' || v === null || v === undefined) return '';
+  const x = Number(v);
+  if (isNaN(x) || x < 0 || x > 1e9) throw new Error('Valeur invalide pour « ' + libelle + ' ».');
+  return x;
+}
+
+function dateSaisie_(iso) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ''))) throw new Error('Date invalide.');
+  const p = String(iso).split('-').map(Number);
+  return new Date(p[0], p[1] - 1, p[2]);
+}
+
 /** Enregistre (ou met à jour) les lignes du journal d'une date : payload = {date, lignes:[{lot, coll, ...}]} */
-function apiEnregistrerJournal(payload) {
-  verifierDroitSaisie_();
+function apiEnregistrerJournal(jeton, payload) {
+  auth_(jeton, 'saisie');
+  const date = dateSaisie_(payload.date);
+  const lotsConnus = lireBase_().Lots.map(function (r) { return String(r[0]).trim(); });
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -143,60 +374,182 @@ function apiEnregistrerJournal(payload) {
     const existants = n > 0 ? sh.getRange(2, 1, n, 2).getValues() : [];
     const index = {};
     existants.forEach(function (r, i) { index[cleJour_(r[0], tz) + '|' + r[1]] = i + 2; });
-    const date = dateDepuisIso_(payload.date);
-    let ajouts = 0, maj = 0;
-    payload.lignes.forEach(function (l) {
-      const valeurs = CHAMPS_JOURNAL.slice(2).map(function (c) {
-        const v = l[c];
-        if (c === 'obs') return v || '';
-        return v === '' || v === null || v === undefined ? '' : Number(v);
+    let ajouts = 0, maj = 0, oeufs = 0;
+    (payload.lignes || []).forEach(function (l) {
+      if (lotsConnus.indexOf(l.lot) < 0) throw new Error('Lot inconnu : ' + l.lot);
+      const valeurs = CHAMPS_JOURNAL.slice(2).map(function (c, i) {
+        return c === 'obs' ? String(l[c] || '').slice(0, 300) : nombreSaisi_(l[c], ENTETES.Journal[i + 2]);
       });
       const vide = valeurs.every(function (v) { return v === '' || v === 0; });
       const ligne = index[payload.date + '|' + l.lot];
-      if (ligne) {
-        sh.getRange(ligne, 3, 1, valeurs.length).setValues([valeurs]);
-        maj++;
-      } else if (!vide) {
-        sh.appendRow([date, l.lot].concat(valeurs));
-        ajouts++;
-      }
+      if (ligne) { sh.getRange(ligne, 3, 1, valeurs.length).setValues([valeurs]); maj++; }
+      else if (!vide) { sh.appendRow([date, l.lot].concat(valeurs)); ajouts++; }
+      oeufs += Number(valeurs[7]) || 0;
     });
+    journal_('Saisie journal', payload.date + ' : ' + ajouts + ' ajout(s), ' + maj + ' mise(s) à jour, ' + oeufs + ' œufs collectés');
     return { ok: true, message: ajouts + ' ligne(s) ajoutée(s), ' + maj + ' mise(s) à jour.' };
   } finally {
     lock.releaseLock();
   }
 }
 
-function apiEnregistrerVente(v) {
-  verifierDroitSaisie_();
-  if (!v.date || !v.client) throw new Error('Date et client obligatoires.');
-  if (!(Number(v.achetes) > 0) && !(Number(v.cadeaux) > 0)) throw new Error('Saisir un nombre d\'œufs achetés ou offerts.');
-  feuille_(ONGLETS.VENTES).appendRow([dateDepuisIso_(v.date), v.client, Number(v.achetes) || '',
-    v.prix === '' || v.prix === undefined ? '' : Number(v.prix), Number(v.cadeaux) || '', v.obs || '']);
+function apiEnregistrerVente(jeton, v) {
+  auth_(jeton, 'saisie');
+  const date = dateSaisie_(v.date);
+  const client = String(v.client || '').trim().slice(0, 120);
+  if (!client) throw new Error('Le client est obligatoire.');
+  const achetes = nombreSaisi_(v.achetes, 'Œufs achetés'), cadeaux = nombreSaisi_(v.cadeaux, 'Cadeaux');
+  if (!(achetes > 0) && !(cadeaux > 0)) throw new Error('Saisir un nombre d\'œufs achetés ou offerts.');
+  feuille_(ONGLETS.VENTES).appendRow([date, client, achetes, nombreSaisi_(v.prix, 'Prix'), cadeaux, String(v.obs || '').slice(0, 300)]);
+  journal_('Saisie vente', v.date + ' · ' + client + ' · ' + (achetes || 0) + ' œufs');
   return { ok: true, message: 'Vente enregistrée.' };
 }
 
-function apiEnregistrerCharge(c) {
-  verifierDroitSaisie_();
-  if (!c.date || !(Number(c.montant) > 0)) throw new Error('Date et montant obligatoires.');
-  feuille_(ONGLETS.CHARGES).appendRow([dateDepuisIso_(c.date), c.type || 'Variable', c.categorie || 'Autre',
-    c.libelle || '', c.lot || 'Tous', Number(c.montant)]);
+function apiEnregistrerCharge(jeton, c) {
+  auth_(jeton, 'saisie');
+  const date = dateSaisie_(c.date);
+  const montant = nombreSaisi_(c.montant, 'Montant');
+  if (!(montant > 0)) throw new Error('Le montant est obligatoire.');
+  const type = c.type === 'Fixe' ? 'Fixe' : 'Variable';
+  feuille_(ONGLETS.CHARGES).appendRow([date, type, String(c.categorie || 'Autre').slice(0, 60), String(c.libelle || '').slice(0, 200), String(c.lot || 'Tous').slice(0, 60), montant]);
+  journal_('Saisie charge', c.date + ' · ' + type + ' · ' + (c.libelle || c.categorie) + ' · ' + montant + ' Ar');
   return { ok: true, message: 'Charge enregistrée.' };
 }
 
-function verifierDroitSaisie_() {
-  const sh = feuille_(ONGLETS.PARAMETRES);
-  const lignes = sh.getDataRange().getValues();
-  const l = lignes.filter(function (r) { return r[0] === 'UTILISATEURS'; })[0];
-  const liste = l ? String(l[2] || '').toLowerCase().split(/[,;\s]+/).filter(String) : [];
-  if (!liste.length) return;
-  const email = (Session.getActiveUser().getEmail() || '').toLowerCase();
-  if (!email || liste.indexOf(email) < 0) {
-    throw new Error('Saisie non autorisée pour ce compte' + (email ? ' (' + email + ')' : '') + '.');
+/* ----- Superadmin : utilisateurs ----- */
+
+function apiUtilisateurs(jeton) {
+  auth_(jeton, 'superadmin');
+  return lireUtilisateurs_();
+}
+
+/** Crée ou modifie un compte. u = {email, nom, role, actif, ancienEmail?, inviter?} */
+function apiEnregistrerUtilisateur(jeton, u) {
+  const moi = auth_(jeton, 'superadmin');
+  const email = normEmail_(u.email);
+  if (!REGEX_EMAIL.test(email)) throw new Error('Adresse e-mail invalide.');
+  if (ROLES.indexOf(u.role) < 0) throw new Error('Rôle invalide.');
+  const actif = u.actif === true || u.actif === 'Oui';
+  const tous = lireUtilisateurs_();
+  const ancien = normEmail_(u.ancienEmail);
+  const avant = ancien ? tous.filter(function (x) { return x.email === ancien; })[0] : null;
+  if (ancien && !avant) throw new Error('Compte introuvable.');
+  if (tous.some(function (x) { return x.email === email && x !== avant; })) throw new Error('Cette adresse existe déjà.');
+  const supers = tous.filter(function (x) { return x.role === 'Superadmin' && x.actif && x !== avant; }).length + (u.role === 'Superadmin' && actif ? 1 : 0);
+  if (supers === 0) throw new Error('Il doit rester au moins un superadmin actif.');
+  const sh = feuille_(ONGLETS.UTILISATEURS);
+  const nom = String(u.nom || '').trim().slice(0, 80);
+  if (avant) {
+    sh.getRange(avant.ligne, 1, 1, 4).setValues([[email, nom, u.role, actif ? 'Oui' : 'Non']]);
+    if (!actif || avant.role !== u.role || avant.email !== email) fermerSessions_(avant.email);
+    journal_('Utilisateur modifié', email + ' · ' + u.role + (actif ? '' : ' · désactivé'));
+  } else {
+    sh.appendRow([email, nom, u.role, actif ? 'Oui' : 'Non', new Date(), '']);
+    journal_('Utilisateur ajouté', email + ' · ' + u.role);
+    if (u.inviter && actif) envoyerInvitation_(email, nom, u.role, moi.nom);
+  }
+  return { ok: true, message: avant ? 'Compte mis à jour.' : 'Compte créé' + (u.inviter && actif ? ' et invitation envoyée.' : '.'), utilisateurs: lireUtilisateurs_() };
+}
+
+function apiSupprimerUtilisateur(jeton, email) {
+  const moi = auth_(jeton, 'superadmin');
+  email = normEmail_(email);
+  if (email === moi.email) throw new Error('Vous ne pouvez pas supprimer votre propre compte.');
+  const tous = lireUtilisateurs_();
+  const u = tous.filter(function (x) { return x.email === email; })[0];
+  if (!u) throw new Error('Compte introuvable.');
+  if (u.role === 'Superadmin' && u.actif && tous.filter(function (x) { return x.role === 'Superadmin' && x.actif; }).length < 2) throw new Error('Il doit rester au moins un superadmin actif.');
+  feuille_(ONGLETS.UTILISATEURS).deleteRow(u.ligne);
+  fermerSessions_(email);
+  journal_('Utilisateur supprimé', email);
+  return { ok: true, message: 'Compte supprimé.', utilisateurs: lireUtilisateurs_() };
+}
+
+function apiInviter(jeton, email) {
+  const moi = auth_(jeton, 'superadmin');
+  const u = lireUtilisateurs_().filter(function (x) { return x.email === normEmail_(email); })[0];
+  if (!u || !u.actif) throw new Error('Compte introuvable ou inactif.');
+  envoyerInvitation_(u.email, u.nom, u.role, moi.nom);
+  journal_('Invitation envoyée', u.email);
+  return { ok: true, message: 'Invitation envoyée à ' + u.email + '.' };
+}
+
+function envoyerInvitation_(email, nom, role, par) {
+  const url = ScriptApp.getService().getUrl() || '';
+  const droits = { Superadmin: 'consulter, saisir et administrer la plateforme', Admin: 'consulter et saisir les données', Utilisateur: 'consulter le tableau de bord' }[role];
+  MailApp.sendEmail({
+    to: email, name: param_('EXPEDITEUR_NOM', 'Matura Agri'), subject: 'Accès au tableau de bord ' + param_('NOM_ELEVAGE', 'Matura Agri'),
+    htmlBody: gabaritMail_('Vous avez accès au tableau de bord', 'Bonjour ' + echapper_(nom || '') + ',',
+      '<p style="font-size:15px;line-height:1.5">' + echapper_(par) + ' vous a donné le rôle <b>' + echapper_(role) + '</b> : vous pouvez ' + droits + '.</p>' +
+      (url ? '<p style="margin:24px 0"><a href="' + url + '" style="background:#1f6f50;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:600;display:inline-block">Ouvrir le tableau de bord</a></p>' : '') +
+      '<p style="color:#6e6e73;font-size:13px;line-height:1.5">Connexion avec cette adresse e-mail : un code à 6 chiffres vous sera envoyé à chaque connexion. Aucun mot de passe à retenir.</p>')
+  });
+}
+
+/* ----- Superadmin : journal des actions ----- */
+
+function apiJournalActions(jeton, limite) {
+  auth_(jeton, 'superadmin');
+  const sh = SpreadsheetApp.getActive().getSheetByName(ONGLETS.ACTIONS);
+  if (!sh || sh.getLastRow() < 2) return [];
+  const n = Math.min(Number(limite) || 500, sh.getLastRow() - 1);
+  const tz = Session.getScriptTimeZone();
+  return sh.getRange(sh.getLastRow() - n + 1, 1, n, 4).getValues().reverse().map(function (r) {
+    return { date: r[0] instanceof Date ? Utilities.formatDate(r[0], tz, 'yyyy-MM-dd HH:mm:ss') : String(r[0]), utilisateur: r[1], action: r[2], detail: r[3] };
+  });
+}
+
+/* ----- Superadmin : paramètres, races, prix de la provende ----- */
+
+function apiParametres(jeton) {
+  auth_(jeton, 'superadmin');
+  const b = lireBase_();
+  return {
+    parametres: b.Parametres.map(function (r) { return { cle: r[0], libelle: r[1], valeur: r[2], unite: r[3] }; }),
+    races: b.Races.map(function (r) { return { race: r[0], objectif: r[1], rationPonte: r[2], rationPoulette: r[3], aPart: /^o/i.test(String(r[4] || '')) }; }),
+    prix: b.PrixProvende.map(function (r) { return { date: r[0], prix: r[1], commentaire: r[2] }; })
+  };
+}
+
+function apiEnregistrerParametres(jeton, data) {
+  auth_(jeton, 'superadmin');
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const shP = feuille_(ONGLETS.PARAMETRES);
+    const lignes = shP.getDataRange().getValues();
+    const changes = [];
+    (data.parametres || []).forEach(function (p) {
+      const i = lignes.findIndex(function (r) { return r[0] === p.cle; });
+      if (i < 1) return;
+      let v = p.valeur;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(String(v))) v = dateSaisie_(v);
+      else if (v !== '' && !isNaN(Number(v))) v = Number(v);
+      else v = String(v).slice(0, 200);
+      const ancien = lignes[i][2] instanceof Date ? cleJour_(lignes[i][2], Session.getScriptTimeZone()) : lignes[i][2];
+      if (String(ancien) !== String(p.valeur)) { shP.getRange(i + 1, 3).setValue(v); changes.push(p.cle + ' : ' + ancien + ' → ' + p.valeur); }
+    });
+    if (data.races) {
+      const shR = feuille_(ONGLETS.RACES);
+      const rangees = data.races.filter(function (r) { return String(r.race || '').trim(); }).map(function (r) {
+        return [String(r.race).trim(), nombreSaisi_(r.objectif, 'Objectif'), nombreSaisi_(r.rationPonte, 'Ration'), nombreSaisi_(r.rationPoulette, 'Ration'), r.aPart ? 'Oui' : 'Non'];
+      });
+      if (shR.getLastRow() > 1) shR.getRange(2, 1, shR.getLastRow() - 1, 5).clearContent();
+      if (rangees.length) shR.getRange(2, 1, rangees.length, 5).setValues(rangees);
+      changes.push('Races : ' + rangees.map(function (r) { return r[0] + ' ' + Math.round(r[1] * 100) + ' %'; }).join(', '));
+    }
+    if (data.nouveauPrix && data.nouveauPrix.date && Number(data.nouveauPrix.prix) > 0) {
+      feuille_(ONGLETS.PRIX).appendRow([dateSaisie_(data.nouveauPrix.date), Number(data.nouveauPrix.prix), String(data.nouveauPrix.commentaire || '').slice(0, 200)]);
+      changes.push('Prix provende ' + data.nouveauPrix.prix + ' Ar/kg au ' + data.nouveauPrix.date);
+    }
+    journal_('Paramètres modifiés', changes.join(' ; ') || 'aucun changement');
+    return { ok: true, message: changes.length ? 'Paramètres enregistrés.' : 'Aucun changement.' };
+  } finally {
+    lock.releaseLock();
   }
 }
 
-/* ===================== 4. LECTURE DE LA BASE ===================== */
+/* ===================== 5. LECTURE DE LA BASE ===================== */
 
 function feuille_(nom) {
   const sh = SpreadsheetApp.getActive().getSheetByName(nom);
@@ -209,12 +562,7 @@ function cleJour_(v, tz) {
   return v === '' || v === null ? '' : String(v);
 }
 
-function dateDepuisIso_(iso) {
-  const p = String(iso).split('-').map(Number);
-  return new Date(p[0], p[1] - 1, p[2]);
-}
-
-/** Lit chaque onglet en tableaux de lignes (sans en-tête), dates converties en 'aaaa-mm-jj'. */
+/** Lit chaque onglet de données en tableaux de lignes (sans en-tête), dates converties en 'aaaa-mm-jj'. */
 function lireBase_() {
   const ss = SpreadsheetApp.getActive();
   const tz = Session.getScriptTimeZone();
@@ -232,7 +580,7 @@ function lireBase_() {
   return brut;
 }
 
-/* ===================== 5. MOTEUR DE CALCUL (pur) ===================== */
+/* ===================== 6. MOTEUR DE CALCUL (pur) ===================== */
 
 const JOUR_MS = 86400000;
 

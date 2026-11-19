@@ -66,7 +66,8 @@ def lire(source):
         ('CIBLE_VENTES_MOIS', 'Objectif œufs vendus par mois', o['C19'].value, 'œufs / mois'),
         ('ECOULEMENT_MIN', 'Objectif taux d\'écoulement', o['C21'].value, 'ratio (vendus + offerts) ÷ collectés'),
         ('NOM_ELEVAGE', 'Nom affiché', 'MATURA AGRI', 'titre du tableau de bord'),
-        ('UTILISATEURS', 'Adresses autorisées à saisir', '', 'e-mails séparés par des virgules ; vide = pas de contrôle'),
+        ('SESSION_DUREE_JOURS', 'Durée d\'une session de connexion', 7, 'jours'),
+        ('EXPEDITEUR_NOM', 'Nom de l\'expéditeur des e-mails', 'Matura Agri', 'codes de connexion et invitations'),
     ]
     rations = {r[0]: (r[1], r[2]) for r in p.iter_rows(min_row=22, max_row=24, min_col=6, max_col=8, values_only=True)}
     races = []
@@ -124,6 +125,7 @@ def ecrire(donnees, sortie):
         '  les œufs ne sont pas vendus avec les autres (ex. Kuroiler, réservés à la couveuse).',
         '',
         'La saisie peut aussi se faire depuis l\'onglet « Saisie » du tableau de bord (téléphone).',
+        'Utilisateurs et JournalActions : créés par la fonction initialiserBase, gérés depuis le tableau de bord (superadmin).',
     ]
     for i, t in enumerate(texte, 1):
         lisez.cell(i, 1, t)

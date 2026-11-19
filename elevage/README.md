@@ -33,19 +33,39 @@ Règles de calcul reprises à l'identique :
 
 ## 2. Contenu du tableau de bord
 
-Filtres : lot / race, période (7 j, 30 j, mois, 90 j, depuis le début, journée, personnalisée), jour de référence.
+Design inspiré d'Apple : barre latérale (ordinateur) ou barre d'onglets en bas (téléphone), mode clair / sombre, anneaux d'objectifs, chiffres animés, mini-courbes, transitions.
+Filtres : lot / race, période (7 J, 30 J, Mois, 90 J, Tout, Jour, Dates), jour de référence.
 
-| Onglet | Contenu |
+| Page | Contenu | Accès |
+|---|---|---|
+| Synthèse | lecture rapide, 3 anneaux (ponte, effectif, ventes), 10 indicateurs, graphiques hebdomadaires, points d'attention, par race | tous |
+| Production | ponte par jour et par lot, taux de ponte (moyenne 7 j), 14 derniers jours en couleur, production mensuelle | tous |
+| Lots & effectifs | âge exact, statut, taux, mortalité, bilan volailles, situation du jour | tous |
+| Ventes & stock | bilan des œufs, stock journalier, ventes mensuelles, meilleurs clients | tous |
+| Rentabilité | compte de résultat, coût par œuf, seuil de rentabilité, évolution mensuelle, provende par lot | tous |
+| Objectifs | anneaux et barres d'avancement, trajectoire effectif et ventes | tous |
+| Saisie | journal du jour, ventes, charges | Admin, Superadmin |
+| Utilisateurs | ajout, rôle, activation, suppression, invitation par e-mail | Superadmin |
+| Journal des actions | connexions, refus, saisies, modifications (recherche) | Superadmin |
+| Paramètres | prix, seuils, objectifs, races, prix de la provende | Superadmin |
+
+## 3. Rôles et sécurité
+
+| Rôle | Droits |
 |---|---|
-| Synthèse | lecture rapide, 12 indicateurs, taux de ponte et œufs par semaine, points d'attention automatiques, couvaison par race |
-| Production | ponte par jour et par lot, taux de ponte (moyenne 7 j) vs objectif, 14 derniers jours en couleur, production mensuelle |
-| Lots & effectifs | situation des lots (âge exact, statut, taux, mortalité), bilan volailles, effectif mensuel, situation du jour |
-| Ventes & stock | bilan des œufs, stock journalier, ventes mensuelles, meilleurs clients, dernières ventes |
-| Rentabilité | compte de résultat, coût par œuf, seuil de rentabilité, évolution mensuelle, provende par lot, charges |
-| Objectifs | avancement (effectif 800, pondeuses 600, mortalité, ponte par race, casse, ventes 8 000/mois, CA, écoulement) |
-| Saisie | journal du jour (tous les lots), nouvelle vente (offre calculée), nouvelle charge |
+| Superadmin | tout : consultation, saisie, comptes, paramètres, journal des actions |
+| Admin | consultation + saisie des données |
+| Utilisateur | consultation seule |
 
-## 3. Installation
+- **Comptes** : identifiés par leur adresse e-mail, créés par le superadmin (onglet `Utilisateurs`). Au premier `initialiserBase`, le propriétaire du script devient Superadmin.
+- **Connexion sans mot de passe** : code à 6 chiffres envoyé par e-mail, valable 10 min, 5 essais, 1 envoi / 45 s, blocage 15 min après 10 échecs. Réponse identique pour une adresse inconnue (on ne peut pas deviner qui a un compte).
+- **Session** : jeton aléatoire stocké haché côté serveur, durée `SESSION_DUREE_JOURS` (7 j par défaut), déconnexion manuelle.
+- **Contrôle côté serveur à chaque appel** : le compte et son rôle sont relus à chaque action. Désactiver un compte ou changer son rôle ferme immédiatement ses sessions. Il reste toujours au moins un superadmin actif.
+- **Journal des actions** (onglet `JournalActions`) : connexions, refus, accès interdits, saisies, comptes et paramètres modifiés.
+- Saisies validées côté serveur (dates, nombres positifs, lots existants), textes échappés à l'affichage, page non intégrable dans un autre site.
+- Limite Gmail : 100 e-mails / jour avec un compte Gmail gratuit (1 500 avec Google Workspace).
+
+## 4. Installation
 
 1. Générer la base (déjà fournie : `MATURA_AGRI_Base.xlsx`) :
    ```bash
@@ -54,23 +74,22 @@ Filtres : lot / race, période (7 j, 30 j, mois, 90 j, depuis le début, journé
 2. Google Drive > Nouveau > Importer le fichier, puis l'ouvrir avec Google Sheets (Fichier > Enregistrer au format Google Sheets).
 3. Fichier > Paramètres > Fuseau horaire : (GMT+03:00) Antananarivo.
 4. Extensions > Apps Script :
-   - remplacer le contenu de `Code.gs` par `apps-script/Code.gs` ;
-   - créer un fichier HTML nommé `Index` avec `apps-script/Index.html` ;
-   - Paramètres du projet > cocher « Afficher le fichier manifeste », remplacer **tout** le contenu de `appsscript.json` par `apps-script/appsscript.json` (facultatif : il ne fixe que le fuseau horaire et le moteur V8).
-5. Exécuter `initialiserBase` une fois et autoriser (vérifie onglets et paramètres).
-6. Déployer > Nouveau déploiement > Application Web : Exécuter en tant que **Moi** ; accès : **Seulement moi**, ou votre domaine Google Workspace, ou les comptes avec qui le classeur est partagé.
-7. Ouvrir l'URL `…/exec`. Menu **Élevage** dans le Sheet : ouvrir le tableau de bord, vérifier les données.
-8. Après chaque modification du code : Déployer > Gérer les déploiements > Modifier > Nouvelle version (l'URL reste la même).
+   - remplacer **tout** le contenu de `Code.gs` par `apps-script/Code.gs` ;
+   - créer (ou remplacer) le fichier HTML nommé `Index` avec `apps-script/Index.html` ;
+   - facultatif : Paramètres du projet > « Afficher le fichier manifeste », remplacer tout `appsscript.json`.
+5. Exécuter `initialiserBase` et autoriser (Paramètres avancés > Accéder à… > Autoriser). Votre adresse devient Superadmin.
+6. Déployer > Nouveau déploiement > Application Web : Exécuter en tant que **Moi**, Qui a accès : **Tout le monde**.
+   L'accès réel est contrôlé par la plateforme : seules les adresses actives de l'onglet `Utilisateurs` reçoivent un code.
+7. Ouvrir l'URL `…/exec`, saisir votre e-mail, recevoir le code, se connecter. Ajouter les comptes dans **Utilisateurs**.
+8. Après chaque modification du code : Déployer > Gérer les déploiements > crayon > Nouvelle version (l'URL reste la même).
 
-Contrôle de la saisie : paramètre `UTILISATEURS` (e-mails séparés par des virgules). Vide = toute personne ayant accès à l'URL peut saisir. Rempli, il ne fonctionne que si Google transmet l'e-mail du visiteur (même domaine Workspace).
-
-## 4. Utilisation au quotidien
-- Saisie dans l'onglet **Saisie** de la web app (téléphone) ou directement dans le Sheet.
-- Nouveau lot : une ligne dans `Lots`. Nouveau prix de provende : une ligne dans `PrixProvende`.
-- Objectifs et seuils : onglet `Parametres` (colonne Valeur) et `Races`.
+## 5. Utilisation au quotidien
+- Saisie dans **Saisie** (téléphone ou ordinateur) ; les cases modifiées passent en orange avant enregistrement.
+- Nouveau lot : une ligne dans l'onglet `Lots` du Sheet.
+- Prix, objectifs, races, prix de la provende : page **Paramètres** (superadmin).
 - Ne pas renommer les onglets ni les en-têtes de la ligne 1.
 
-## 5. Tests
+## 6. Tests
 ```bash
 python3 base/generer_base.py <classeur_v4_4.xlsx> /tmp/base.xlsx --json /tmp/donnees.json
 ```
