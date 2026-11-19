@@ -83,6 +83,7 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('Élevage')
     .addItem('Ouvrir le tableau de bord', 'ouvrirTableauDeBord')
     .addItem('Vérifier les données', 'verifierDonnees')
+    .addItem('Tester l\'envoi des codes de connexion', 'testerEnvoiCode')
     .addSeparator()
     .addItem('Initialiser / réparer la structure', 'initialiserBase')
     .addToUi();
@@ -214,18 +215,74 @@ function apiDemanderCode(email) {
   const cleRate = 'otp-rate:' + hash_(email);
   if (cache.get(cleRate)) throw new Error('Un code vient d\'être envoyé. Patientez quelques secondes avant de redemander.');
   cache.put(cleRate, '1', OTP_DELAI_S);
+  UTILISATEUR_COURANT_ = email;
   const u = lireUtilisateurs_().filter(function (x) { return x.email === email; })[0];
-  if (!u || !u.actif) { UTILISATEUR_COURANT_ = email; journal_('Connexion refusée', 'Adresse non autorisée ou inactive'); return neutre; }
+  if (!u || !u.actif) { journal_('Connexion refusée', 'Adresse non enregistrée dans Utilisateurs ou compte inactif'); return neutre; }
   const code = String(Math.floor(100000 + Math.random() * 900000));
-  cache.put('otp:' + hash_(email), JSON.stringify({ h: hash_(email + ':' + code), n: 0 }), OTP_TTL_S);
-  const nom = param_('EXPEDITEUR_NOM', 'Matura Agri');
+  const cleOtp = 'otp:' + hash_(email);
+  cache.put(cleOtp, JSON.stringify({ h: hash_(email + ':' + code), n: 0 }), OTP_TTL_S);
+  try {
+    envoyerCode_(email, u.nom, code);
+  } catch (e) {
+    // L'envoi a échoué : on n'affiche pas un faux « code envoyé » et on permet de réessayer tout de suite.
+    cache.remove(cleOtp);
+    cache.remove(cleRate);
+    const cause = String((e && e.message) || e);
+    journal_('Échec envoi code', cause);
+    console.error('Échec envoi code à ' + email + ' : ' + cause);
+    throw new Error(messageEchecMail_(cause));
+  }
+  journal_('Code envoyé', 'Code de connexion envoyé');
+  return neutre;
+}
+
+function envoyerCode_(email, nom, code) {
+  if (MailApp.getRemainingDailyQuota() < 1) throw new Error('QUOTA: quota journalier d\'e-mails atteint');
+  const exp = String(param_('EXPEDITEUR_NOM', 'Matura Agri'));
   MailApp.sendEmail({
-    to: email, name: nom, subject: code + ' est votre code de connexion ' + nom,
-    htmlBody: gabaritMail_('Votre code de connexion', 'Bonjour ' + echapper_(u.nom || '') + ',',
+    to: email, name: exp, subject: code + ' est votre code de connexion ' + exp,
+    body: 'Votre code de connexion : ' + code + '\nIl est valable 10 minutes. Si vous n\'êtes pas à l\'origine de cette demande, ignorez ce message.',
+    htmlBody: gabaritMail_('Votre code de connexion', 'Bonjour ' + echapper_(nom || '') + ',',
       '<p style="font-size:40px;letter-spacing:10px;font-weight:600;margin:24px 0;color:#1d1d1f">' + code + '</p>' +
       '<p style="color:#6e6e73;font-size:13px;line-height:1.5">Ce code est valable 10 minutes. Si vous n\'êtes pas à l\'origine de cette demande, ignorez ce message : personne ne peut se connecter sans ce code.</p>')
   });
-  return neutre;
+}
+
+/** Traduit l'erreur Google en message compréhensible. */
+function messageEchecMail_(cause) {
+  if (/permission|autoris|authoriz|scope/i.test(cause)) {
+    return 'L\'envoi du code a échoué : le script n\'est pas encore autorisé à envoyer des e-mails. ' +
+      'Le propriétaire doit ouvrir Apps Script, exécuter la fonction « testerEnvoiCode », accepter les autorisations, puis créer une nouvelle version du déploiement.';
+  }
+  if (/quota|limit|too many|trop/i.test(cause)) {
+    return 'L\'envoi du code a échoué : la limite quotidienne d\'e-mails de Google est atteinte. Réessayez demain ou utilisez un compte Google Workspace.';
+  }
+  return 'L\'envoi du code a échoué (' + cause.slice(0, 160) + '). Réessayez dans un instant ; si le problème continue, prévenez l\'administrateur.';
+}
+
+/**
+ * À EXÉCUTER DEPUIS L'ÉDITEUR APPS SCRIPT (bouton Exécuter) après chaque installation ou mise à jour :
+ *  - déclenche la demande d'autorisation d'envoi d'e-mails ;
+ *  - envoie un e-mail de test au propriétaire ;
+ *  - affiche le quota restant et la liste des comptes autorisés à se connecter.
+ */
+function testerEnvoiCode() {
+  const proprio = normEmail_(Session.getEffectiveUser().getEmail());
+  const lignes = [];
+  lignes.push('Propriétaire du script : ' + (proprio || '(inconnu)'));
+  lignes.push('E-mails restants aujourd\'hui : ' + MailApp.getRemainingDailyQuota());
+  const users = lireUtilisateurs_();
+  lignes.push('Comptes actifs (seules ces adresses reçoivent un code) : ' +
+    (users.filter(function (u) { return u.actif; }).map(function (u) { return u.email + ' (' + u.role + ')'; }).join(', ') || 'AUCUN → exécutez initialiserBase'));
+  if (proprio) {
+    envoyerCode_(proprio, 'Test', '123456');
+    lignes.push('E-mail de test envoyé à ' + proprio + ' (objet : « 123456 est votre code… »). Vérifiez aussi les spams.');
+  }
+  lignes.push('Web app : ' + (ScriptApp.getService().getUrl() || 'pas encore déployée'));
+  journal_('Test envoi', lignes.join(' | '));
+  console.log(lignes.join('\n'));
+  try { SpreadsheetApp.getUi().alert('Test de l\'envoi des codes', lignes.join('\n\n'), SpreadsheetApp.getUi().ButtonSet.OK); } catch (e) { /* lancé depuis l'éditeur : voir le journal d'exécution */ }
+  return lignes;
 }
 
 /** Étape 2 : vérification du code → jeton de session. */

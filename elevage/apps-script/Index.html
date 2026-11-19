@@ -698,7 +698,7 @@ function montrerLogin(msg) {
   setTimeout(function () { $('lEmail').focus(); }, 300);
 }
 function msgLogin(t, type) { var el = $('msgLogin'); el.textContent = t; el.className = 'msg-login' + (type === 'ko' ? ' ko' : ''); }
-function chargerBouton(b, actif, texte) { b.disabled = actif; if (actif) { b.dataset.t = b.innerHTML; b.innerHTML = '<span class="spinner"></span>'; } else if (b.dataset.t) b.innerHTML = texte || b.dataset.t; }
+function chargerBouton(b, actif, texte) { b.disabled = actif; if (actif && b.querySelector('.spinner')) return; if (actif) { b.dataset.t = b.innerHTML; b.innerHTML = '<span class="spinner"></span>'; } else if (b.dataset.t) b.innerHTML = texte || b.dataset.t; }
 function demanderCode() {
   var email = $('lEmail').value.trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msgLogin('Saisissez une adresse e-mail valide.', 'ko'); return; }
@@ -707,7 +707,7 @@ function demanderCode() {
     emailEnCours = email;
     $('etapeEmail').classList.add('cache'); $('etapeCode').classList.remove('cache');
     $('loginSous').innerHTML = 'Code envoyé à <b>' + esc(email) + '</b>';
-    msgLogin(r.message);
+    msgLogin(r.message + ' Rien reçu après 2 minutes ? Regardez dans les spams, ou demandez au superadmin de vérifier que votre adresse est enregistrée et active.');
     viderCodes(); demarrerMinuteur();
   }).catch(function (e) { msgLogin(e.message, 'ko'); }).then(function () { chargerBouton($('bCode'), false); });
 }
@@ -717,16 +717,19 @@ function demarrerMinuteur() {
   minuteur = setInterval(function () { s--; b.textContent = s > 0 ? 'Renvoyer (' + s + ' s)' : 'Renvoyer le code'; if (s <= 0) { clearInterval(minuteur); b.disabled = false; } }, 1000);
   b.textContent = 'Renvoyer (45 s)';
 }
+var verifEnCours = false;
 function verifierCode() {
+  if (verifEnCours) return;
   var code = [].map.call($('codes').querySelectorAll('input'), function (i) { return i.value; }).join('');
   if (code.length !== 6) { $('codes').classList.remove('erreur'); void $('codes').offsetWidth; $('codes').classList.add('erreur'); return; }
+  verifEnCours = true;
   chargerBouton($('bVerifier'), true);
   appel('apiVerifierCode', emailEnCours, code).then(function (r) {
     JETON = r.jeton; stock.set('jeton', JETON); MOI = r.moi;
     demarrerApp();
   }).catch(function (e) {
     msgLogin(e.message, 'ko'); $('codes').classList.remove('erreur'); void $('codes').offsetWidth; $('codes').classList.add('erreur'); viderCodes();
-  }).then(function () { chargerBouton($('bVerifier'), false); });
+  }).then(function () { verifEnCours = false; chargerBouton($('bVerifier'), false); });
 }
 $('bCode').onclick = demanderCode;
 $('lEmail').addEventListener('keydown', function (e) { if (e.key === 'Enter') demanderCode(); });
