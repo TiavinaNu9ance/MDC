@@ -239,7 +239,7 @@ function journal_(action, detail) {
   } catch (e) { /* le journal ne doit jamais bloquer une action */ }
 }
 
-/** Étape 1 : envoi d'un code à 6 chiffres. Réponse identique que l'adresse soit connue ou non. */
+/** Étape 1 : envoi d'un code à 6 chiffres à une adresse enregistrée et active. */
 function apiDemanderCode(email) {
   email = normEmail_(email);
   if (!REGEX_EMAIL.test(email)) throw new Error('Adresse e-mail invalide.');
