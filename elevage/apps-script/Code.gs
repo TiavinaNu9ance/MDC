@@ -179,12 +179,46 @@ function lireUtilisateurs_() {
   const tz = Session.getScriptTimeZone();
   return sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues().map(function (r, i) {
     return {
-      ligne: i + 2, email: normEmail_(r[0]), nom: String(r[1] || ''), role: ROLES.indexOf(r[2]) >= 0 ? r[2] : 'Utilisateur',
+      ligne: i + 2, email: normEmail_(r[0]), nom: String(r[1] || ''), role: roleNormalise_(r[2]),
       actif: r[3] === true || /^(oui|true|vrai)$/i.test(String(r[3])),
       creeLe: r[4] instanceof Date ? Utilities.formatDate(r[4], tz, 'yyyy-MM-dd HH:mm') : '',
       derniere: r[5] instanceof Date ? Utilities.formatDate(r[5], tz, 'yyyy-MM-dd HH:mm') : ''
     };
   }).filter(function (u) { return u.email; });
+}
+
+function roleNormalise_(v) {
+  const t = String(v || '').trim().toLowerCase().replace(/[\s-]/g, '');
+  if (t === 'superadmin') return 'Superadmin';
+  if (t === 'admin' || t === 'administrateur') return 'Admin';
+  return 'Utilisateur';
+}
+
+/**
+ * Garantit qu'il existe au moins un Superadmin actif : sinon, crée l'onglet Utilisateurs si besoin
+ * et y inscrit le propriétaire du script (celui qui a déployé la web app).
+ */
+function assurerSuperadmin_() {
+  const users = lireUtilisateurs_();
+  if (users.some(function (u) { return u.role === 'Superadmin' && u.actif; })) return users;
+  const proprio = normEmail_(Session.getEffectiveUser().getEmail());
+  if (!proprio) return users;
+  const ss = SpreadsheetApp.getActive();
+  let sh = ss.getSheetByName(ONGLETS.UTILISATEURS);
+  if (!sh) { sh = ss.insertSheet(ONGLETS.UTILISATEURS); sh.appendRow(ENTETES_SECURITE.Utilisateurs); }
+  const existant = users.filter(function (u) { return u.email === proprio; })[0];
+  if (existant) sh.getRange(existant.ligne, 3, 1, 2).setValues([['Superadmin', 'Oui']]);
+  else sh.appendRow([proprio, 'Propriétaire', 'Superadmin', 'Oui', new Date(), '']);
+  journal_('Superadmin créé automatiquement', proprio);
+  return lireUtilisateurs_();
+}
+
+/** Version du code : affichée sur l'écran de connexion pour vérifier que le déploiement est à jour. */
+const VERSION = '2026-11-19.3';
+
+/** Informations publiques pour l'écran de connexion (aucune donnée sensible). */
+function apiInfo() {
+  return { version: VERSION, nom: String(param_('NOM_ELEVAGE', 'Matura Agri')) };
 }
 
 function profil_(u) {
@@ -208,7 +242,6 @@ function journal_(action, detail) {
 /** Étape 1 : envoi d'un code à 6 chiffres. Réponse identique que l'adresse soit connue ou non. */
 function apiDemanderCode(email) {
   email = normEmail_(email);
-  const neutre = { message: 'Si cette adresse est autorisée, un code vient de lui être envoyé.' };
   if (!REGEX_EMAIL.test(email)) throw new Error('Adresse e-mail invalide.');
   const cache = CacheService.getScriptCache();
   if (cache.get('bloque:' + hash_(email))) throw new Error('Trop de tentatives. Réessayez dans 15 minutes.');
@@ -216,8 +249,13 @@ function apiDemanderCode(email) {
   if (cache.get(cleRate)) throw new Error('Un code vient d\'être envoyé. Patientez quelques secondes avant de redemander.');
   cache.put(cleRate, '1', OTP_DELAI_S);
   UTILISATEUR_COURANT_ = email;
-  const u = lireUtilisateurs_().filter(function (x) { return x.email === email; })[0];
-  if (!u || !u.actif) { journal_('Connexion refusée', 'Adresse non enregistrée dans Utilisateurs ou compte inactif'); return neutre; }
+  const u = assurerSuperadmin_().filter(function (x) { return x.email === email; })[0];
+  if (!u || !u.actif) {
+    cache.remove(cleRate);
+    journal_('Connexion refusée', u ? 'Compte inactif' : 'Adresse absente de l\'onglet Utilisateurs');
+    throw new Error(u ? 'Ce compte est désactivé. Demandez au superadmin de le réactiver.'
+      : 'Aucun code envoyé : l\'adresse « ' + email + ' » n\'est pas enregistrée dans la plateforme. Vérifiez l\'orthographe, ou demandez au superadmin de vous ajouter (page Utilisateurs, ou onglet « Utilisateurs » du Google Sheets).');
+  }
   const code = String(Math.floor(100000 + Math.random() * 900000));
   const cleOtp = 'otp:' + hash_(email);
   cache.put(cleOtp, JSON.stringify({ h: hash_(email + ':' + code), n: 0 }), OTP_TTL_S);
@@ -233,7 +271,7 @@ function apiDemanderCode(email) {
     throw new Error(messageEchecMail_(cause));
   }
   journal_('Code envoyé', 'Code de connexion envoyé');
-  return neutre;
+  return { message: 'Code envoyé à ' + email + '. Il arrive en général en moins d\'une minute.' };
 }
 
 function envoyerCode_(email, nom, code) {

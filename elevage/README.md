@@ -57,8 +57,8 @@ Filtres : lot / race, période (7 J, 30 J, Mois, 90 J, Tout, Jour, Dates), jour 
 | Admin | consultation + saisie des données |
 | Utilisateur | consultation seule |
 
-- **Comptes** : identifiés par leur adresse e-mail, créés par le superadmin (onglet `Utilisateurs`). Au premier `initialiserBase`, le propriétaire du script devient Superadmin.
-- **Connexion sans mot de passe** : code à 6 chiffres envoyé par e-mail, valable 10 min, 5 essais, 1 envoi / 45 s, blocage 15 min après 10 échecs. Réponse identique pour une adresse inconnue (on ne peut pas deviner qui a un compte).
+- **Comptes** : identifiés par leur adresse e-mail, créés par le superadmin (onglet `Utilisateurs`). S'il n'y a aucun superadmin actif, le propriétaire du script le devient automatiquement (à `initialiserBase` ou à sa première demande de code).
+- **Connexion sans mot de passe** : code à 6 chiffres envoyé par e-mail, valable 10 min, 5 essais, 1 envoi / 45 s, blocage 15 min après 10 échecs. Adresse inconnue ou compte inactif : message explicite (aucun e-mail envoyé).
 - **Session** : jeton aléatoire stocké haché côté serveur, durée `SESSION_DUREE_JOURS` (7 j par défaut), déconnexion manuelle.
 - **Contrôle côté serveur à chaque appel** : le compte et son rôle sont relus à chaque action. Désactiver un compte ou changer son rôle ferme immédiatement ses sessions. Il reste toujours au moins un superadmin actif.
 - **Journal des actions** (onglet `JournalActions`) : connexions, refus, accès interdits, saisies, comptes et paramètres modifiés.

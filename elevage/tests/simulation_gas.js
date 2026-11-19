@@ -109,15 +109,17 @@ verif('initialiserBase relancé : pas de doublon de superadmin', users.filter(r 
 
 // 2. Demande de code
 const proprio = 'proprietaire@exemple.mg';
+verif('apiInfo renvoie la version', G.apiInfo().version === '2026-11-19.3');
 let rep = G.apiDemanderCode('  Proprietaire@Exemple.mg ');
 verif('code envoyé au superadmin (adresse normalisée)', mails.length === 1 && mails[0].to === proprio, mails.map(m => m.to));
 const code1 = codeDuMail(mails[0]);
 verif('le code (6 chiffres) est dans l\'objet et le corps du mail', /^\d{6}$/.test(code1) && mails[0].htmlBody.indexOf(code1) > 0);
-verif('message neutre renvoyé', /Si cette adresse/.test(rep.message));
+verif('message de confirmation avec l\'adresse', /Code envoyé à proprietaire@exemple.mg/.test(rep.message), rep.message);
 verif('redemande immédiate bloquée (45 s)', /Patientez/.test(erreur(() => G.apiDemanderCode(proprio)) || ''));
 const nMails = mails.length;
-rep = G.apiDemanderCode('inconnu@gmail.com');
-verif('adresse inconnue : même message, aucun e-mail', /Si cette adresse/.test(rep.message) && mails.length === nMails);
+const msgInconnu = erreur(() => G.apiDemanderCode('inconnu@gmail.com')) || '';
+verif('adresse inconnue : message explicite, aucun e-mail', /pas enregistrée/.test(msgInconnu) && mails.length === nMails, msgInconnu);
+verif('adresse inconnue corrigée : nouvel essai possible tout de suite', /pas enregistrée/.test(erreur(() => G.apiDemanderCode('inconnu@gmail.com')) || ''));
 verif('adresse inconnue : tracée dans le journal', feuilles.JournalActions.data.some(r => r[2] === 'Connexion refusée'));
 verif('adresse invalide refusée', /invalide/.test(erreur(() => G.apiDemanderCode('pas-un-email')) || ''));
 
@@ -179,8 +181,8 @@ G.apiEnregistrerUtilisateur(J, { ancienEmail: 'admin@exemple.mg', email: 'admin@
 verif('compte désactivé : session coupée immédiatement', /SESSION_EXPIREE/.test(erreur(() => G.apiTableauDeBord(JA, {})) || ''));
 const avant = mails.length;
 Object.keys(cache).forEach(k => delete cache[k]);
-G.apiDemanderCode('admin@exemple.mg');
-verif('compte désactivé : plus de code envoyé', mails.length === avant);
+const msgInactif = erreur(() => G.apiDemanderCode('admin@exemple.mg')) || '';
+verif('compte désactivé : message explicite, pas de code', /désactivé/.test(msgInactif) && mails.length === avant, msgInactif);
 
 // 9. Paramètres
 const prm = G.apiParametres(J);
@@ -208,10 +210,22 @@ echecMail = 'You do not have permission to call MailApp.sendEmail';
 const msgEchec = erreur(() => G.apiDemanderCode('lecteur@exemple.mg')) || '';
 echecMail = null;
 verif('échec d\'envoi : message d\'erreur explicite (pas un faux « code envoyé »)', /envoi/i.test(msgEchec), msgEchec);
-verif('échec d\'envoi : on peut réessayer tout de suite', /Si cette adresse/.test((G.apiDemanderCode('lecteur@exemple.mg') || {}).message || ''));
+verif('échec d\'envoi : on peut réessayer tout de suite', /Code envoyé/.test((G.apiDemanderCode('lecteur@exemple.mg') || {}).message || ''));
 verif('échec d\'envoi : cause notée dans le journal', feuilles.JournalActions.data.some(r => r[2] === 'Échec envoi code'));
 verif('fonction de test d\'envoi disponible', typeof G.testerEnvoiCode === 'function');
 if (typeof G.testerEnvoiCode === 'function') { const n0 = mails.length; G.testerEnvoiCode(); verif('testerEnvoiCode envoie un e-mail au propriétaire', mails.length === n0 + 1 && mails[n0].to === proprio); }
+
+// 13. Base sans onglet Utilisateurs (initialiserBase jamais lancé) : le propriétaire peut quand même se connecter
+delete feuilles.Utilisateurs;
+Object.keys(cache).forEach(k => delete cache[k]);
+const n13 = mails.length;
+rep = G.apiDemanderCode('proprietaire@exemple.mg');
+verif('sans onglet Utilisateurs : propriétaire créé Superadmin et code envoyé', mails.length === n13 + 1 && feuilles.Utilisateurs && feuilles.Utilisateurs.data[1][2] === 'Superadmin', rep);
+// 14. Rôle et Actif saisis à la main dans le Sheet (minuscules, case cochée)
+feuilles.Utilisateurs.appendRow(['  Main@Exemple.mg ', 'Saisi main', 'admin', true, '', '']);
+Object.keys(cache).forEach(k => delete cache[k]);
+const s14 = connecter('main@exemple.mg');
+verif('compte saisi à la main (rôle « admin », case cochée) : connexion OK', s14.moi.role === 'Admin' && s14.moi.peutSaisir);
 
 console.log('\n' + ok + ' réussis, ' + ko + ' échec(s)');
 process.exit(ko ? 1 : 0);

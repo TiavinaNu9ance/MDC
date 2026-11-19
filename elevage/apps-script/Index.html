@@ -373,6 +373,7 @@ tr.total td{font-weight:600;border-top:1px solid var(--sep);border-bottom:0}
     </div>
     <p class="msg-login" id="msgLogin"></p>
     <div class="note-secu"><svg width="16" height="16"><use href="#i-cadenas"/></svg><span>Connexion sans mot de passe : un code à usage unique, valable 10 minutes, est envoyé à votre adresse. Seuls les comptes créés par le superadmin peuvent se connecter.</span></div>
+    <p id="versionInfo" style="font-size:11px;color:var(--text-3);margin:12px 0 0"></p>
   </div>
 </div>
 
@@ -690,7 +691,18 @@ function appelSecurise(nom) { return appel.apply(null, [nom, JETON].concat([].sl
    Connexion
    ========================================================= */
 var emailEnCours = '', minuteur = null;
+var VERSION_PAGE = '2026-11-19.3';
+function verifierVersion() {
+  if (!$('versionInfo')) { var el = document.createElement('p'); el.id = 'versionInfo'; el.style.cssText = 'font-size:11px;color:var(--text-3);margin:12px 0 0'; document.querySelector('.carte-login').appendChild(el); }
+  appel('apiInfo').then(function (i) {
+    var ok = i.version === VERSION_PAGE;
+    $('versionInfo').innerHTML = ok ? 'Version ' + esc(i.version) : '<span class="c-ko">Versions différentes : serveur ' + esc(i.version) + ', page ' + VERSION_PAGE + '. Recollez Code.gs et Index, puis Déployer &gt; Gérer les déploiements &gt; Nouvelle version.</span>';
+  }).catch(function () {
+    $('versionInfo').innerHTML = '<span class="c-ko">Le serveur utilise une ancienne version du code. Dans Apps Script : enregistrez Code.gs, puis Déployer &gt; Gérer les déploiements &gt; crayon &gt; Nouvelle version &gt; Déployer.</span>';
+  });
+}
 function montrerLogin(msg) {
+  verifierVersion();
   $('vueApp').classList.add('cache'); $('vueLogin').classList.remove('cache');
   $('etapeEmail').classList.remove('cache'); $('etapeCode').classList.add('cache');
   $('loginSous').textContent = 'Connectez-vous pour accéder au tableau de bord.';
@@ -707,7 +719,7 @@ function demanderCode() {
     emailEnCours = email;
     $('etapeEmail').classList.add('cache'); $('etapeCode').classList.remove('cache');
     $('loginSous').innerHTML = 'Code envoyé à <b>' + esc(email) + '</b>';
-    msgLogin(r.message + ' Rien reçu après 2 minutes ? Regardez dans les spams, ou demandez au superadmin de vérifier que votre adresse est enregistrée et active.');
+    msgLogin(r.message + ' Pensez à regarder dans les spams et l\'onglet « Promotions ».');
     viderCodes(); demarrerMinuteur();
   }).catch(function (e) { msgLogin(e.message, 'ko'); }).then(function () { chargerBouton($('bCode'), false); });
 }
